@@ -23,47 +23,41 @@ type Config struct {
 	CsrvSecret         string `json:"csrv_secret"`
 }
 
-var config Config
-
-var session *discordgo.Session
+var (
+	config  Config
+	session *discordgo.Session
+)
 
 func loadConfig() (c Config) {
 	configFile, err := os.Open("config.json")
 	if err != nil {
 		log.Panic(err)
 	}
+
 	defer configFile.Close()
+
 	err = json.NewDecoder(configFile).Decode(&c)
 	if err != nil {
-		log.Panic("loadConfig Decoder.Decode(&c) " + err.Error())
+		log.Panic("loadConfig#Decoder.Decode(&c)", err)
 	}
 	return
 }
 
-func InitLog() {
-	file, err := os.OpenFile("csrvbot.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
-	if err != nil {
-		panic(err)
-	}
-	log.SetOutput(file)
-}
-
 func main() {
-	//	InitLog()
 	config = loadConfig()
-	InitDB()
+	initDatabase()
 	var err error
 	session, err = discordgo.New("Bot " + config.SystemToken)
 	if err != nil {
 		panic(err)
 	}
 
-	session.AddHandler(OnMessageCreate)
-	session.AddHandler(HandleGiveawayReactions)
+	session.AddHandler(onMessageCreate)
+	session.AddHandler(handleGiveawayReactions)
 	session.AddHandler(HandleThxmeReactions)
-	session.AddHandler(OnGuildCreate)
-	session.AddHandler(OnGuildMemberUpdate)
-	session.AddHandler(OnGuildMemberAdd)
+	session.AddHandler(onGuildCreate)
+	session.AddHandler(onGuildMemberUpdate)
+	session.AddHandler(onGuildMemberAdd)
 	err = session.Open()
 	if err != nil {
 		panic(err)
@@ -73,11 +67,11 @@ func main() {
 	_ = c.AddFunc(config.GiveawayCron, finishGiveaways)
 	c.Start()
 
-	log.Println("Wystartowałem")
+	log.Println("Bot has been turned on.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
-	log.Println("Przyjąłem polecenie wyłączenia")
+	log.Println("Bot has been turned off.")
 	err = session.Close()
 	if err != nil {
 		panic(err)
@@ -102,7 +96,7 @@ func checkHelper(guildId, memberId string) {
 	var helpers []data
 	_, err = DbMap.Select(&helpers, "SELECT * FROM (SELECT user_id, count(*) AS amount FROM Participants WHERE guild_id=? AND user_id=? AND is_accepted=1 GROUP BY user_id) AS a WHERE amount > ?", serverConfig.GuildId, memberId, serverConfig.HelperRoleThxesNeeded)
 	if err != nil {
-		log.Println("checkHelper Blad pobieranai danych z bazy ", err)
+		log.Println("("+guildId+") checkHelper#DbMap.Select", err)
 	}
 
 	roleId, err := getRoleID(guildId, serverConfig.HelperRoleName)
@@ -115,14 +109,14 @@ func checkHelper(guildId, memberId string) {
 		}
 		err = session.GuildMemberRoleAdd(guildId, member.User.ID, roleId)
 		if err != nil {
-			log.Println("checkHelpers Unable to give user helper role :(")
+			log.Println("("+guildId+") checkHelper#session.GuildMemberRoleAdd", err)
 		}
 	} else {
 		for _, memberRole := range member.Roles {
 			if memberRole == roleId {
 				err = session.GuildMemberRoleRemove(guildId, member.User.ID, roleId)
 				if err != nil {
-					log.Println("checkHelpers Unable to remove user helper role :(")
+					log.Println("("+guildId+") checkHelper#session.GuildMemberRoleRemove", err)
 				}
 			}
 		}
@@ -147,7 +141,7 @@ func checkHelpers(guildId string) {
 	var helpers []data
 	_, err := DbMap.Select(&helpers, "SELECT * FROM (SELECT user_id, count(*) AS amount FROM Participants WHERE guild_id=? AND is_accepted=1 GROUP BY user_id) AS a WHERE amount > ?", serverConfig.GuildId, serverConfig.HelperRoleThxesNeeded)
 	if err != nil {
-		log.Println("")
+		log.Println("("+guildId+") checkHelpers#DbMap.Select", err)
 	}
 
 	roleId, err := getRoleID(guildId, serverConfig.HelperRoleName)
@@ -168,59 +162,55 @@ func checkHelpers(guildId string) {
 			}
 			err = session.GuildMemberRoleAdd(guildId, member.User.ID, roleId)
 			if err != nil {
-				log.Println("checkHelpers Unable to give user helper role :(")
-			}
-		} else {
-			for _, memberRole := range member.Roles {
-				if memberRole == roleId {
-					err = session.GuildMemberRoleRemove(guildId, member.User.ID, roleId)
-					if err != nil {
-						log.Println("checkHelpers Unable to remove user helper role :(")
-					}
-				}
+				log.Println("("+guildId+") checkHelpers#session.GuildMemberRoleAdd", err)
 			}
 		}
 	}
 }
 
-func printServerInfo(channelID, guildID string) *discordgo.Message {
+func printServerInfo(channelId, guildId string) *discordgo.Message {
 	embed := discordgo.MessageEmbed{
 		Author: &discordgo.MessageEmbedAuthor{
 			URL:     "https://craftserve.pl",
 			Name:    "Informacje o serwerze",
 			IconURL: "https://cdn.discordapp.com/avatars/524308413719642118/c2a17b4479bfcc89d2b7e64e6ae15ebe.webp",
 		},
-		Description: "ID:" + guildID,
+		Description: "ID:" + guildId,
 		Color:       0x234d20,
 		Timestamp:   time.Now().Format(time.RFC3339),
 	}
-	guild, err := session.Guild(guildID)
+	guild, err := session.Guild(guildId)
 	if err != nil {
-		log.Println("printServerInfo session.Guild(" + guildID + ") " + err.Error())
+		log.Println("("+guildId+") "+"printServerInfo#session.Guild", err)
 		return nil
 	}
 	embed.Fields = []*discordgo.MessageEmbedField{}
 	embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{Name: "Region", Value: guild.Region})
-	embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{Name: "Kanały", Value: fmt.Sprintf("%d kanałów", len(guild.Channels))})
-	embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{Name: fmt.Sprintf("Użytkowników [%d]", guild.MemberCount), Value: "Wielu"})
-	createTime, _ := guild.JoinedAt.Parse()
-	embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{Name: "Data utworzenia", Value: createTime.Format(time.RFC1123)})
-	msg, err := session.ChannelMessageSendEmbed(channelID, &embed)
+	embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{Name: "Kanałów", Value: fmt.Sprintf("%d", len(guild.Channels))})
+	embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{Name: "Użytkowników", Value: fmt.Sprintf("%d", guild.MemberCount)})
+	msg, err := session.ChannelMessageSendEmbed(channelId, &embed)
 	if err != nil {
-		log.Println("printServerInfo session.ChannelMessageSendEmbed(" + channelID + ", embed) " + err.Error())
+		log.Println("("+guildId+") "+"printServerInfo#session.ChannelMessageSendEmbed("+channelId+", embed)", err)
 	}
 	return msg
 }
 
-func printGiveawayInfo(channelID, guildID string) *discordgo.Message {
+func printGiveawayInfo(channelID, guildId string) *discordgo.Message {
+	giveaway := getGiveawayForGuild(guildId)
+	if giveaway == nil {
+		log.Println("(" + guildId + ") finishGiveaway#getGiveawayForGuild")
+		return nil
+	}
+	participants, err := getParticipantsNamesString(giveaway.Id)
+	if err != nil {
+		log.Println("("+guildId+") updateThxInfoMessage#getParticipantsNamesString", err)
+	}
 	info := "**Ten bot organizuje giveaway kodów na serwery Diamond.**\n" +
 		"**Każdy kod przedłuża serwer o 7 dni.**\n" +
 		"Aby wziąć udział pomagaj innym użytkownikom. Jeżeli komuś pomożesz, to poproś tą osobę aby napisala `!thx @TwojNick` - w ten sposób dostaniesz się do loterii. To jest nasza metoda na rozruszanie tego Discorda, tak, aby każdy mógł liczyć na pomoc. Każde podziękowanie to jeden los, więc warto pomagać!\n\n" +
 		"**Sponsorem tego bota jest https://craftserve.pl/ - hosting serwerów Minecraft.**\n\n" +
 		"Pomoc musi odbywać się na tym serwerze na tekstowych kanałach publicznych.\n\n" +
-		"Uczestnicy: " +
-		getParticipantsNamesString(getGiveawayForGuild(guildID).Id) +
-		"\n\nNagrody rozdajemy o " + config.GiveawayTimeString + ", Powodzenia!"
+		"Uczestnicy: " + participants + "\n\nNagrody rozdajemy o " + config.GiveawayTimeString + ", Powodzenia!"
 	embed := &discordgo.MessageEmbed{
 		Author: &discordgo.MessageEmbedAuthor{
 			URL:     "https://craftserve.pl",
@@ -231,7 +221,10 @@ func printGiveawayInfo(channelID, guildID string) *discordgo.Message {
 		Color:       0x234d20,
 		Timestamp:   time.Now().Format(time.RFC3339),
 	}
-	m, _ := session.ChannelMessageSendEmbed(channelID, embed)
+	m, err := session.ChannelMessageSendEmbed(channelID, embed)
+	if err != nil {
+		log.Println("("+guildId+") printGiveawayInfo#session.ChannelMessageSendEmbed", err)
+	}
 	return m
 }
 
@@ -260,7 +253,7 @@ func getCSRVCode() (string, error) {
 
 func generateResendEmbed(userId string) (embed *discordgo.MessageEmbed, err error) {
 	var giveaways []Giveaway
-	_, err = DbMap.Select(&giveaways, "SELECT code FROM Giveaways WHERE winner_id=? ORDER BY id DESC LIMIT 10", userId)
+	_, err = DbMap.Select(&giveaways, "SELECT code FROM Giveaways WHERE winner_id = ? ORDER BY id DESC LIMIT 10", userId)
 	if err != nil {
 		return
 	}
@@ -278,11 +271,11 @@ func generateResendEmbed(userId string) (embed *discordgo.MessageEmbed, err erro
 	return
 }
 
-func createConfigurationIfNotExists(guildID string) {
+func createConfigurationIfNotExists(guildId string) {
 	var serverConfig ServerConfig
-	err := DbMap.SelectOne(&serverConfig, "SELECT * FROM ServerConfig")
+	err := DbMap.SelectOne(&serverConfig, "SELECT * FROM ServerConfig WHERE guild_id = ?", guildId)
 	if err == sql.ErrNoRows {
-		serverConfig.GuildId = guildID
+		serverConfig.GuildId = guildId
 		serverConfig.MainChannel = "giveaway"
 		serverConfig.AdminRole = "CraftserveBotAdmin"
 		serverConfig.HelperRoleName = ""
@@ -290,14 +283,14 @@ func createConfigurationIfNotExists(guildID string) {
 		err = DbMap.Insert(&serverConfig)
 	}
 	if err != nil {
-		log.Panicln("createConfigurationIfNotExists DbMap.SelectOne " + err.Error())
+		log.Panicln("("+guildId+") createConfigurationIfNotExists#DbMap.SelectOne", err)
 	}
 }
 
-func getServerConfigForGuildId(guildID string) (serverConfig ServerConfig) {
-	err := DbMap.SelectOne(&serverConfig, "SELECT * FROM ServerConfig WHERE guild_id=?", guildID)
+func getServerConfigForGuildId(guildId string) (serverConfig ServerConfig) {
+	err := DbMap.SelectOne(&serverConfig, "SELECT * FROM ServerConfig WHERE guild_id = ?", guildId)
 	if err != nil {
-		log.Panicln("createConfigurationIfNotExists DbMap.SelectOne " + err.Error())
+		log.Panicln("("+guildId+") getServerConfigForGuildId#DbMap.SelectOne", err)
 	}
 	return
 }
@@ -308,7 +301,7 @@ func getAllMembers(guildId string) []*discordgo.Member {
 	for {
 		members, err := session.GuildMembers(guildId, after, 1000)
 		if err != nil {
-			log.Println("getAllMembers Error getting nicknames " + err.Error())
+			log.Println("("+guildId+") getAllMembers#session.GuildMembers", err)
 			return nil
 		}
 		allMembers = append(allMembers, members...)

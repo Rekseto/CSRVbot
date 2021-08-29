@@ -83,12 +83,13 @@ type ThxNotification struct {
 
 var DbMap gorp.DbMap
 
-func InitDB() {
+func initDatabase() {
 	db, err := sql.Open("mysql", config.MysqlString)
 	if err != nil {
-		log.Panic("InitDB sql.Open(\"mysql\", " + config.MysqlString + ") " + err.Error())
+		log.Panic("initDatabase sql.Open(\"mysql\", "+config.MysqlString+")", err)
 	}
-	DbMap = gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{"InnoDB", "UTF8MB4"}}
+
+	DbMap = gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{Engine: "InnoDB", Encoding: "UTF8MB4"}}
 
 	DbMap.AddTableWithName(Giveaway{}, "Giveaways").SetKeys(true, "id")
 	DbMap.AddTableWithName(Participant{}, "Participants").SetKeys(true, "id")
@@ -100,6 +101,6 @@ func InitDB() {
 
 	err = DbMap.CreateTablesIfNotExists()
 	if err != nil {
-		log.Panic("InitDB DbMap.CreateTablesIfNotExists() " + err.Error())
+		log.Panic("initDatabase#DbMap.CreateTablesIfNotExists", err)
 	}
 }
