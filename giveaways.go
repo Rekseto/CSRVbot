@@ -66,8 +66,11 @@ func finishGiveaways() {
 	giveaways := getAllUnfinishedGiveaways()
 	for _, giveaway := range giveaways {
 		finishGiveaway(giveaway.GuildId)
+		guild, err := session.Guild(giveaway.GuildId)
+		if err == nil {
+			createMissingGiveaways(guild)
+		}
 	}
-	createMissingGiveaways(giveaway.GuildId)
 }
 
 func finishGiveaway(guildId string) {
