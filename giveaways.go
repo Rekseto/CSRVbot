@@ -67,6 +67,7 @@ func finishGiveaways() {
 	for _, giveaway := range giveaways {
 		finishGiveaway(giveaway.GuildId)
 	}
+	createMissingGiveaways(giveaway.GuildId)
 }
 
 func finishGiveaway(guildId string) {
