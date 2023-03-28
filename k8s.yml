@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: csrvbot
+  namespace: csrvbot
+spec:
+  selector:
+    matchLabels:
+      app: csrvbot
+  template:
+    metadata:
+      labels:
+        app: csrvbot
+    spec:
+      imagePullSecrets:
+        - name: kwadratowa
+      containers:
+        - name: csrvbot
+          tty: true
+          stdin: true
+          image: registry.kwadratowa.games/csrvbot/csrvbot:stable
+          resources:
+            requests:
+              memory: "500Mi"
+              cpu: "200m"
+            limits:
+              memory: "1Gi"
+              cpu: "300m"
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: csrvbot
+              mountPath: "/app/config.json"
+              subPath: config.json
+              readOnly: true
+      volumes:
+        - name: csrvbot
+          configMap:
+            name: csrvbot
