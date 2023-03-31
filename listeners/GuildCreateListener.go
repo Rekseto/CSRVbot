@@ -28,32 +28,9 @@ func (h GuildCreateListener) Handle(s *discordgo.Session, g *discordgo.GuildCrea
 	log.Println("Registered guild (" + g.Name + "#" + g.ID + ")")
 
 	h.createConfigurationIfNotExists(g.Guild.ID)
-	h.createMissingGiveaways(g.Guild)
+	pkg.CreateMissingGiveaways(s, h.ServerRepo, h.GiveawayRepo, g.Guild)
 	h.updateAllMembersSavedRoles(g.Guild.ID)
 	h.checkHelpers(g.Guild.ID)
-}
-
-func (h GuildCreateListener) createMissingGiveaways(guild *discordgo.Guild) {
-	serverConfig, err := h.ServerRepo.GetServerConfigForGuild(guild.ID)
-	if err != nil {
-		log.Println("("+guild.ID+") createMissingGiveaways#ServerRepo.GetServerConfigForGuild", err)
-		return
-	}
-	giveawayChannelId := serverConfig.MainChannel
-	_, err = h.Session.Channel(giveawayChannelId)
-	if err == nil {
-		giveaway, err := h.GiveawayRepo.GetGiveawayForGuild(guild.ID)
-		if giveaway == nil && err == nil {
-			err := h.GiveawayRepo.InsertGiveaway(guild.ID, guild.Name)
-			if err != nil {
-				log.Panicln("createMissingGiveaways#DbMap.Insert", err)
-				return
-			}
-		}
-	} else {
-		log.Println("("+guild.ID+") createMissingGiveaways#Session.Channel", err)
-	}
-
 }
 
 func (h GuildCreateListener) createConfigurationIfNotExists(guildID string) {

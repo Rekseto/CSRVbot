@@ -24,6 +24,14 @@ func GetRoleID(session *discordgo.Session, guildId string, roleName string) (str
 }
 
 func HasPermission(session *discordgo.Session, member *discordgo.Member, guildId string, permission int64) bool {
+	g, err := session.Guild(guildId)
+	if err != nil {
+		log.Println("("+guildId+") "+"hasPermisson#session.Guild", err)
+		return false
+	}
+	if g.OwnerID == member.User.ID {
+		return true
+	}
 	for _, roleId := range member.Roles {
 		role, err := session.State.Role(guildId, roleId)
 		if err != nil {

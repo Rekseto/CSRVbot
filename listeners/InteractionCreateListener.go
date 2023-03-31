@@ -9,15 +9,16 @@ type InteractionCreateListener struct {
 	GiveawayCommand commands.GiveawayCommand
 	ThxCommand      commands.ThxCommand
 	ThxmeCommand    commands.ThxmeCommand
+	CsrvbotCommand  commands.CsrvbotCommand
 	//DocCommand      commands.DocCommand
-	//CsrvBotCommands commands.CsrvBotCommands
 }
 
-func NewInteractionCreateListener(giveawayCommand commands.GiveawayCommand, thxCommand commands.ThxCommand, thxmeCommand commands.ThxmeCommand) InteractionCreateListener {
+func NewInteractionCreateListener(giveawayCommand commands.GiveawayCommand, thxCommand commands.ThxCommand, thxmeCommand commands.ThxmeCommand, csrvbotCommand commands.CsrvbotCommand) InteractionCreateListener {
 	return InteractionCreateListener{
 		GiveawayCommand: giveawayCommand,
 		ThxCommand:      thxCommand,
 		ThxmeCommand:    thxmeCommand,
+		CsrvbotCommand:  csrvbotCommand,
 	}
 }
 
@@ -35,9 +36,9 @@ func (h InteractionCreateListener) Handle(s *discordgo.Session, i *discordgo.Int
 		//case "doc":
 		//	handleDocCommand(s, i)
 		//	break
-		//case "csrvbot":
-		//	handleCsrvBotCommands(s, i)
-		//	break
+	case "csrvbot":
+		h.CsrvbotCommand.Handle(s, i)
+		break
 	}
 
 }

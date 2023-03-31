@@ -33,7 +33,7 @@ func (repo *ServerRepo) GetServerConfigForGuild(guildId string) (*ServerConfig, 
 	return &serverConfig, nil
 }
 
-func (repo *ServerRepo) InsertServerConfig(guildId string, giveawayChannel string) error {
+func (repo *ServerRepo) InsertServerConfig(guildId, giveawayChannel string) error {
 	var serverConfig ServerConfig
 	serverConfig.GuildId = guildId
 	serverConfig.MainChannel = giveawayChannel
@@ -53,4 +53,52 @@ func (repo *ServerRepo) GetAdminRoleForGuild(guildId string) (string, error) {
 		return "", err
 	}
 	return serverConfig.AdminRole, nil
+}
+
+func (repo *ServerRepo) GetMainChannelForGuild(guildId string) (string, error) {
+	str, err := repo.mysql.SelectStr("SELECT main_channel FROM ServerConfig WHERE guild_id = ?", guildId)
+	if err != nil {
+		return "", err
+	}
+	return str, nil
+}
+
+func (repo *ServerRepo) SetMainChannelForGuild(guildId, channelId string) error {
+	_, err := repo.mysql.Exec("UPDATE ServerConfig SET main_channel = ? WHERE guild_id = ?", channelId, guildId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ServerRepo) SetThxInfoChannelForGuild(guildId, channelId string) error {
+	_, err := repo.mysql.Exec("UPDATE ServerConfig SET thx_info_channel = ? WHERE guild_id = ?", channelId, guildId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ServerRepo) SetAdminRoleForGuild(guildId, roleName string) error {
+	_, err := repo.mysql.Exec("UPDATE ServerConfig SET admin_role = ? WHERE guild_id = ?", roleName, guildId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ServerRepo) SetHelperRoleForGuild(guildId, roleName string) error {
+	_, err := repo.mysql.Exec("UPDATE ServerConfig SET helper_role_name = ? WHERE guild_id = ?", roleName, guildId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *ServerRepo) SetHelperThxesNeededForGuild(guildId string, thxesNeeded uint64) error {
+	_, err := repo.mysql.Exec("UPDATE ServerConfig SET helper_role_thxes_needed = ? WHERE guild_id = ?", thxesNeeded, guildId)
+	if err != nil {
+		return err
+	}
+	return nil
 }

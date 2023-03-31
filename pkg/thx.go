@@ -7,10 +7,6 @@ import (
 	"log"
 )
 
-func ProcessThx() {
-
-}
-
 func NotifyThxOnThxInfoChannel(s *discordgo.Session, serverRepo repos.ServerRepo, giveawayRepo repos.GiveawayRepo, guildId, channelId, messageId, participantId, confirmerId, state string) {
 	embed := ConstructThxNotificationEmbed(guildId, channelId, messageId, participantId, confirmerId, state)
 

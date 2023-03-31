@@ -2,7 +2,6 @@ package repos
 
 import (
 	"database/sql"
-	"github.com/go-sql-driver/mysql"
 	"gopkg.in/gorp.v2"
 	"log"
 	"time"
@@ -24,7 +23,7 @@ func NewGiveawayRepo(mysql *gorp.DbMap) *GiveawayRepo {
 type Giveaway struct {
 	Id            int            `db:"id, primarykey, autoincrement"`
 	StartTime     time.Time      `db:"start_time"`
-	EndTime       mysql.NullTime `db:"end_time"`
+	EndTime       *time.Time     `db:"end_time"`
 	GuildId       string         `db:"guild_id,size:255"`
 	GuildName     string         `db:"guild_name,size:255"`
 	WinnerId      sql.NullString `db:"winner_id,size:255"`
@@ -161,6 +160,15 @@ func (repo *GiveawayRepo) GetParticipantsWithThxAmount(guildId string, minThxAmo
 	return helpers, nil
 }
 
+func (repo *GiveawayRepo) GetParticipantsForGiveaway(giveawayId int) ([]Participant, error) {
+	var participants []Participant
+	_, err := repo.mysql.Select(&participants, "SELECT * FROM Participants WHERE giveaway_id = ? AND is_accepted = true", giveawayId)
+	if err != nil {
+		return nil, err
+	}
+	return participants, nil
+}
+
 func (repo *GiveawayRepo) GetThxNotification(messageId string) (*ThxNotification, error) {
 	var notification ThxNotification
 	err := repo.mysql.SelectOne(&notification, "SELECT * FROM ThxNotifications WHERE message_id = ?", messageId)
@@ -244,6 +252,37 @@ func (repo *GiveawayRepo) UpdateParticipantCandidate(participantCandidate *Parti
 	participantCandidate.AcceptTime = &now
 	participantCandidate.IsAccepted = sql.NullBool{Bool: isAccepted, Valid: true}
 	_, err := repo.mysql.Update(participantCandidate)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *GiveawayRepo) UpdateGiveaway(giveaway *Giveaway, messageId, code, winnerId, winnerName string) error {
+	now := time.Now()
+	giveaway.EndTime = &now
+	giveaway.InfoMessageId = sql.NullString{String: messageId, Valid: true}
+	giveaway.Code = sql.NullString{String: code, Valid: true}
+	giveaway.WinnerId = sql.NullString{String: winnerId, Valid: true}
+	giveaway.WinnerName = sql.NullString{String: winnerName, Valid: true}
+	_, err := repo.mysql.Update(giveaway)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *GiveawayRepo) GetUnfinishedGiveaways() ([]Giveaway, error) {
+	var giveaways []Giveaway
+	_, err := repo.mysql.Select(&giveaways, "SELECT * FROM Giveaways WHERE end_time IS NULL")
+	if err != nil {
+		return nil, err
+	}
+	return giveaways, nil
+}
+
+func (repo *GiveawayRepo) RemoveParticipants(giveawayId int, participantId string) error {
+	_, err := repo.mysql.Exec("UPDATE Participants SET is_accepted=false WHERE giveaway_id = ? AND user_id = ?", giveawayId, participantId)
 	if err != nil {
 		return err
 	}
