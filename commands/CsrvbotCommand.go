@@ -389,6 +389,12 @@ func (h CsrvbotCommand) handleGiveawayChannelSet(s *discordgo.Session, i *discor
 	}
 	log.Println("(" + i.GuildID + ") " + i.Member.User.Username + " set giveaway channel to " + channel.Name + " (" + channel.ID + ")")
 	pkg.RespondWithMessage(s, i, "Ustawiono kanał do ogłoszeń giveawaya na "+channel.Mention())
+	guild, err := s.Guild(i.GuildID)
+	if err != nil {
+		log.Println("handleGiveawayChannelSet s.Guild", err)
+		return
+	}
+	pkg.CreateMissingGiveaways(s, h.ServerRepo, h.GiveawayRepo, guild)
 }
 
 func (h CsrvbotCommand) handleThxInfoChannelSet(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -455,4 +461,5 @@ func (h CsrvbotCommand) handleHelperThxAmountSet(s *discordgo.Session, i *discor
 	}
 	log.Println("(" + i.GuildID + ") " + i.Member.User.Username + " set helper thx amount to " + strconv.FormatUint(amount, 10))
 	pkg.RespondWithMessage(s, i, "Ustawiono ilość thx potrzebną do uzyskania rangi helpera na "+strconv.FormatUint(amount, 10))
+	pkg.CheckHelpers(s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, i.GuildID)
 }

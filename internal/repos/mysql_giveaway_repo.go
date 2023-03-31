@@ -160,6 +160,15 @@ func (repo *GiveawayRepo) GetParticipantsWithThxAmount(guildId string, minThxAmo
 	return helpers, nil
 }
 
+func (repo *GiveawayRepo) HasThxAmount(guildId, memberId string, minThxAmount int) bool {
+	ret, err := repo.mysql.SelectInt("SELECT count(*) AS amount  FROM Participants WHERE guild_id=? AND user_id=? AND is_accepted=1 HAVING amount > ?", guildId, memberId, minThxAmount)
+	if err != nil {
+		log.Println("HasThxAmount#DbMap.SelectInt", err)
+		return false
+	}
+	return ret > 0
+}
+
 func (repo *GiveawayRepo) GetParticipantsForGiveaway(giveawayId int) ([]Participant, error) {
 	var participants []Participant
 	_, err := repo.mysql.Select(&participants, "SELECT * FROM Participants WHERE giveaway_id = ? AND is_accepted = true", giveawayId)

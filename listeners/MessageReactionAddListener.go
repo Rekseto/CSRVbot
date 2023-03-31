@@ -85,6 +85,7 @@ func (h MessageReactionAddListener) Handle(s *discordgo.Session, r *discordgo.Me
 				return
 			}
 			pkg.NotifyThxOnThxInfoChannel(s, h.ServerRepo, h.GiveawayRepo, r.GuildID, r.ChannelID, r.MessageID, participant.UserId, r.UserID, "confirm")
+			pkg.CheckHelper(s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, r.GuildID, participant.UserId)
 			break
 		case "⛔":
 			err := h.GiveawayRepo.UpdateParticipant(participant, r.UserID, member.User.Username, false)
@@ -108,6 +109,7 @@ func (h MessageReactionAddListener) Handle(s *discordgo.Session, r *discordgo.Me
 				return
 			}
 			pkg.NotifyThxOnThxInfoChannel(s, h.ServerRepo, h.GiveawayRepo, r.GuildID, r.ChannelID, r.MessageID, participant.UserId, r.UserID, "reject")
+			pkg.CheckHelper(s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, r.GuildID, participant.UserId)
 			break
 		}
 	} else if h.GiveawayRepo.IsThxmeMessage(r.MessageID) {

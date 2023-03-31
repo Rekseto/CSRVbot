@@ -30,7 +30,7 @@ func (h GuildCreateListener) Handle(s *discordgo.Session, g *discordgo.GuildCrea
 	h.createConfigurationIfNotExists(g.Guild.ID)
 	pkg.CreateMissingGiveaways(s, h.ServerRepo, h.GiveawayRepo, g.Guild)
 	h.updateAllMembersSavedRoles(g.Guild.ID)
-	h.checkHelpers(g.Guild.ID)
+	pkg.CheckHelpers(s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, g.Guild.ID)
 }
 
 func (h GuildCreateListener) createConfigurationIfNotExists(guildID string) {
@@ -59,59 +59,5 @@ func (h GuildCreateListener) updateAllMembersSavedRoles(guildId string) {
 	guildMembers := pkg.GetAllMembers(h.Session, guildId)
 	for _, member := range guildMembers {
 		h.UserRepo.UpdateMemberSavedRoles(member.Roles, member.User.ID, guildId)
-	}
-}
-
-// done, but can't be used in many places fixme
-func (h GuildCreateListener) checkHelpers(guildId string) {
-	serverConfig, err := h.ServerRepo.GetServerConfigForGuild(guildId)
-	if err != nil {
-		log.Println("("+guildId+") checkHelpers#ServerRepo.GetServerConfigForGuild", err)
-		return
-	}
-	if serverConfig.HelperRoleThxesNeeded <= 0 {
-		return
-	}
-	if serverConfig.HelperRoleName == "" {
-		return
-	}
-
-	members := pkg.GetAllMembers(h.Session, guildId)
-
-	helpers, err := h.GiveawayRepo.GetParticipantsWithThxAmount(guildId, serverConfig.HelperRoleThxesNeeded)
-	if err != nil {
-		log.Println("("+guildId+") checkHelpers#GiveawayRepo.GetParticipantsWithThxAmount", err)
-		return
-	}
-
-	roleId, err := pkg.GetRoleID(h.Session, guildId, serverConfig.HelperRoleName)
-	if err != nil {
-		log.Println("("+guildId+") checkHelpers#pkg.GetRoleID", err)
-		return
-	}
-
-	for _, member := range members {
-		shouldHaveRole := false
-		for _, helper := range helpers {
-			if h.UserRepo.IsUserHelperBlacklisted(member.User.ID, guildId) {
-				shouldHaveRole = false
-				//break? fixme
-			}
-			if helper.UserId == member.User.ID {
-				shouldHaveRole = true
-				break
-			}
-		}
-		if shouldHaveRole {
-			for _, memberRole := range member.Roles {
-				if memberRole == roleId {
-					continue
-				}
-			}
-			err = h.Session.GuildMemberRoleAdd(guildId, member.User.ID, roleId)
-			if err != nil {
-				log.Println("("+guildId+") checkHelpers#session.GuildMemberRoleAdd", err)
-			}
-		}
 	}
 }

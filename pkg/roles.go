@@ -61,6 +61,16 @@ func HasRole(session *discordgo.Session, member *discordgo.Member, roleName, gui
 	return false
 }
 
+func HasRoleById(member *discordgo.Member, roleId string) bool {
+	for _, role := range member.Roles {
+		if role == roleId {
+			return true
+		}
+	}
+
+	return false
+}
+
 func HasAdminPermissions(session *discordgo.Session, serverRepo repos.ServerRepo, member *discordgo.Member, guildId string) bool {
 	if HasPermission(session, member, guildId, 8) {
 		return true
