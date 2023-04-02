@@ -57,7 +57,8 @@ func main() {
 	var thxCommand = commands.NewThxCommand(giveawayRepo, userRepo, serverRepo, BotConfig.GiveawayTimeString)
 	var thxmeCommand = commands.NewThxmeCommand(giveawayRepo, userRepo, serverRepo, BotConfig.GiveawayTimeString)
 	var csrvbotCommand = commands.NewCsrvbotCommand(serverRepo, giveawayRepo, userRepo)
-	var interactionCreateListener = listeners.NewInteractionCreateListener(giveawayCommand, thxCommand, thxmeCommand, csrvbotCommand)
+	var docCommand = commands.NewDocCommand()
+	var interactionCreateListener = listeners.NewInteractionCreateListener(giveawayCommand, thxCommand, thxmeCommand, csrvbotCommand, docCommand)
 	var guildCreateListener = listeners.NewGuildCreateListener(session, giveawayRepo, serverRepo, userRepo)
 	var guildMemberAddListener = listeners.NewGuildMemberAddListener(userRepo)
 	var guildMemberUpdateListener = listeners.NewGuildMemberUpdateListener(userRepo)
@@ -79,6 +80,7 @@ func main() {
 	thxCommand.Register(session)
 	thxmeCommand.Register(session)
 	csrvbotCommand.Register(session)
+	docCommand.Register(session)
 
 	c := cron.New()
 	_ = c.AddFunc(BotConfig.GiveawayCron, func() {
