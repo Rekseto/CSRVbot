@@ -69,7 +69,24 @@ func FinishGiveaway(s *discordgo.Session, serverRepo repos.ServerRepo, giveawayR
 	_, err = s.ChannelMessageSendEmbed(dm.ID, dmEmbed)
 
 	mainEmbed := ConstructChannelWinnerEmbed(member.User.Username)
-	message, err := s.ChannelMessageSendEmbed(giveawayChannelId, mainEmbed)
+	message, err := s.ChannelMessageSendComplex(giveawayChannelId, &discordgo.MessageSend{
+		Embed: mainEmbed,
+		Components: []discordgo.MessageComponent{
+			&discordgo.ActionsRow{
+				Components: []discordgo.MessageComponent{
+					&discordgo.Button{
+						Label:    "Kliknij tutaj, aby wyświetlić kod",
+						Style:    discordgo.SuccessButton,
+						CustomID: "winnercode",
+						Emoji: discordgo.ComponentEmoji{
+							Name: "🎉",
+						},
+					},
+				},
+			},
+		},
+	})
+
 	if err != nil {
 		log.Println("("+guildId+") finishGiveaway#session.ChannelMessageSendEmbed", err)
 	}

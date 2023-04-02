@@ -297,3 +297,22 @@ func (repo *GiveawayRepo) RemoveParticipants(giveawayId int, participantId strin
 	}
 	return nil
 }
+
+func (repo *GiveawayRepo) HasWonGiveawayByMessageId(messageId, userId string) bool {
+	ret, err := repo.mysql.SelectInt("SELECT count(*) FROM Giveaways WHERE info_message_id = ? AND winner_id = ?", messageId, userId)
+	if err != nil {
+		log.Println("HasWonGiveawayByMessageId#DbMap.SelectInt", err)
+		return false
+	}
+
+	return ret > 0
+}
+
+func (repo *GiveawayRepo) GetCodeForInfoMessage(infoMessageId string) (string, error) {
+	var code string
+	err := repo.mysql.SelectOne(&code, "SELECT code FROM Giveaways WHERE info_message_id = ?", infoMessageId)
+	if err != nil {
+		return "", err
+	}
+	return code, nil
+}

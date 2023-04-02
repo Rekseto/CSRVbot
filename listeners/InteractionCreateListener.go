@@ -2,7 +2,10 @@ package listeners
 
 import (
 	"csrvbot/commands"
+	"csrvbot/internal/repos"
+	"csrvbot/pkg"
 	"github.com/bwmarrin/discordgo"
+	"log"
 )
 
 type InteractionCreateListener struct {
@@ -11,15 +14,17 @@ type InteractionCreateListener struct {
 	ThxmeCommand    commands.ThxmeCommand
 	CsrvbotCommand  commands.CsrvbotCommand
 	DocCommand      commands.DocCommand
+	GiveawayRepo    repos.GiveawayRepo
 }
 
-func NewInteractionCreateListener(giveawayCommand commands.GiveawayCommand, thxCommand commands.ThxCommand, thxmeCommand commands.ThxmeCommand, csrvbotCommand commands.CsrvbotCommand, docCommand commands.DocCommand) InteractionCreateListener {
+func NewInteractionCreateListener(giveawayCommand commands.GiveawayCommand, thxCommand commands.ThxCommand, thxmeCommand commands.ThxmeCommand, csrvbotCommand commands.CsrvbotCommand, docCommand commands.DocCommand, giveawayRepo *repos.GiveawayRepo) InteractionCreateListener {
 	return InteractionCreateListener{
 		GiveawayCommand: giveawayCommand,
 		ThxCommand:      thxCommand,
 		ThxmeCommand:    thxmeCommand,
 		CsrvbotCommand:  csrvbotCommand,
 		DocCommand:      docCommand,
+		GiveawayRepo:    *giveawayRepo,
 	}
 }
 
@@ -29,6 +34,8 @@ func (h InteractionCreateListener) Handle(s *discordgo.Session, i *discordgo.Int
 		h.handleApplicationCommands(s, i)
 	case discordgo.InteractionApplicationCommandAutocomplete:
 		h.handleApplicationCommandsAutocomplete(s, i)
+	case discordgo.InteractionMessageComponent:
+		h.handleMessageComponents(s, i)
 	}
 }
 
@@ -51,5 +58,43 @@ func (h InteractionCreateListener) handleApplicationCommandsAutocomplete(s *disc
 	switch i.ApplicationCommandData().Name {
 	case "doc":
 		h.DocCommand.HandleAutocomplete(s, i)
+	}
+}
+
+func (h InteractionCreateListener) handleMessageComponents(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	switch i.MessageComponentData().CustomID {
+	case "winnercode":
+		hasWon := h.GiveawayRepo.HasWonGiveawayByMessageId(i.Message.ID, i.Member.User.ID)
+		if !hasWon {
+			err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Nie wygrałeś tego giveawayu!",
+					Flags:   discordgo.MessageFlagsEphemeral,
+				},
+			})
+			if err != nil {
+				log.Println("("+i.GuildID+") handleMessageComponents#session.InteractionRespond", err)
+			}
+			return
+		}
+
+		code, err := h.GiveawayRepo.GetCodeForInfoMessage(i.Message.ID)
+		if err != nil {
+			log.Println("("+i.GuildID+") handleMessageComponents#session.InteractionRespond", err)
+			return
+		}
+
+		err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Flags:  discordgo.MessageFlagsEphemeral,
+				Embeds: []*discordgo.MessageEmbed{pkg.ConstructWinnerEmbed(code)},
+			},
+		})
+		if err != nil {
+			log.Println("("+i.GuildID+") handleMessageComponents#session.InteractionRespond", err)
+			return
+		}
 	}
 }
