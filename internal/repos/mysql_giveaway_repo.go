@@ -316,3 +316,12 @@ func (repo *GiveawayRepo) GetCodeForInfoMessage(infoMessageId string) (string, e
 	}
 	return code, nil
 }
+
+func (repo *GiveawayRepo) GetLastCodesForUser(userId string, limit int) ([]string, error) {
+	var codes []string
+	_, err := repo.mysql.Select(&codes, "SELECT code FROM Giveaways WHERE winner_id = ? ORDER BY end_time DESC LIMIT ?", userId, limit)
+	if err != nil {
+		return nil, err
+	}
+	return codes, nil
+}

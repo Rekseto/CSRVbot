@@ -14,16 +14,18 @@ type InteractionCreateListener struct {
 	ThxmeCommand    commands.ThxmeCommand
 	CsrvbotCommand  commands.CsrvbotCommand
 	DocCommand      commands.DocCommand
+	ResendCommand   commands.ResendCommand
 	GiveawayRepo    repos.GiveawayRepo
 }
 
-func NewInteractionCreateListener(giveawayCommand commands.GiveawayCommand, thxCommand commands.ThxCommand, thxmeCommand commands.ThxmeCommand, csrvbotCommand commands.CsrvbotCommand, docCommand commands.DocCommand, giveawayRepo *repos.GiveawayRepo) InteractionCreateListener {
+func NewInteractionCreateListener(giveawayCommand commands.GiveawayCommand, thxCommand commands.ThxCommand, thxmeCommand commands.ThxmeCommand, csrvbotCommand commands.CsrvbotCommand, docCommand commands.DocCommand, resendCommand commands.ResendCommand, giveawayRepo *repos.GiveawayRepo) InteractionCreateListener {
 	return InteractionCreateListener{
 		GiveawayCommand: giveawayCommand,
 		ThxCommand:      thxCommand,
 		ThxmeCommand:    thxmeCommand,
 		CsrvbotCommand:  csrvbotCommand,
 		DocCommand:      docCommand,
+		ResendCommand:   resendCommand,
 		GiveawayRepo:    *giveawayRepo,
 	}
 }
@@ -51,6 +53,8 @@ func (h InteractionCreateListener) handleApplicationCommands(s *discordgo.Sessio
 		h.DocCommand.Handle(s, i)
 	case "csrvbot":
 		h.CsrvbotCommand.Handle(s, i)
+	case "resend":
+		h.ResendCommand.Handle(s, i)
 	}
 }
 
