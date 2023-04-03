@@ -4,8 +4,8 @@ import (
 	"csrvbot/commands"
 	"csrvbot/internal/repos"
 	"csrvbot/listeners"
-	"csrvbot/pkg"
 	"csrvbot/pkg/database"
+	"csrvbot/pkg/discord"
 	"encoding/json"
 	"github.com/bwmarrin/discordgo"
 	"github.com/robfig/cron"
@@ -97,7 +97,7 @@ func main() {
 
 	c := cron.New()
 	_ = c.AddFunc(BotConfig.GiveawayCron, func() {
-		pkg.FinishGiveaways(session, *giveawayRepo, *serverRepo)
+		discord.FinishGiveaways(session, *giveawayRepo, *serverRepo)
 	})
 	c.Start()
 

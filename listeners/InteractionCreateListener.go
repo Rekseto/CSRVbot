@@ -3,7 +3,7 @@ package listeners
 import (
 	"csrvbot/commands"
 	"csrvbot/internal/repos"
-	"csrvbot/pkg"
+	"csrvbot/pkg/discord"
 	"github.com/bwmarrin/discordgo"
 	"log"
 )
@@ -97,7 +97,7 @@ func (h InteractionCreateListener) handleMessageComponents(s *discordgo.Session,
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Flags:  discordgo.MessageFlagsEphemeral,
-				Embeds: []*discordgo.MessageEmbed{pkg.ConstructWinnerEmbed(code)},
+				Embeds: []*discordgo.MessageEmbed{discord.ConstructWinnerEmbed(code)},
 			},
 		})
 		if err != nil {

@@ -2,7 +2,7 @@ package listeners
 
 import (
 	"csrvbot/internal/repos"
-	"csrvbot/pkg"
+	"csrvbot/pkg/discord"
 	"database/sql"
 	"github.com/bwmarrin/discordgo"
 	"log"
@@ -28,9 +28,9 @@ func (h GuildCreateListener) Handle(s *discordgo.Session, g *discordgo.GuildCrea
 	log.Println("Registered guild (" + g.Name + "#" + g.ID + ")")
 
 	h.createConfigurationIfNotExists(g.Guild.ID)
-	pkg.CreateMissingGiveaways(s, h.ServerRepo, h.GiveawayRepo, g.Guild)
+	discord.CreateMissingGiveaways(s, h.ServerRepo, h.GiveawayRepo, g.Guild)
 	h.updateAllMembersSavedRoles(g.Guild.ID)
-	pkg.CheckHelpers(s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, g.Guild.ID)
+	discord.CheckHelpers(s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, g.Guild.ID)
 }
 
 func (h GuildCreateListener) createConfigurationIfNotExists(guildID string) {
@@ -56,7 +56,7 @@ func (h GuildCreateListener) createConfigurationIfNotExists(guildID string) {
 }
 
 func (h GuildCreateListener) updateAllMembersSavedRoles(guildId string) {
-	guildMembers := pkg.GetAllMembers(h.Session, guildId)
+	guildMembers := discord.GetAllMembers(h.Session, guildId)
 	for _, member := range guildMembers {
 		h.UserRepo.UpdateMemberSavedRoles(member.Roles, member.User.ID, guildId)
 	}

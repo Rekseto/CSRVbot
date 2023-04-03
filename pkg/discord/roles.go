@@ -1,4 +1,4 @@
-package pkg
+package discord
 
 import (
 	"csrvbot/internal/repos"

@@ -1,7 +1,8 @@
-package pkg
+package discord
 
 import (
 	"csrvbot/internal/repos"
+	"csrvbot/pkg"
 	"github.com/bwmarrin/discordgo"
 	"log"
 	"math/rand"
@@ -44,7 +45,7 @@ func FinishGiveaway(s *discordgo.Session, serverRepo repos.ServerRepo, giveawayR
 		return
 	}
 
-	code, err := GetCSRVCode()
+	code, err := pkg.GetCSRVCode()
 	if err != nil {
 		log.Println("("+guildId+") finishGiveaway#getCSRVCode", err)
 		_, err = s.ChannelMessageSend(giveawayChannelId, "Błąd API Craftserve, nie udało się pobrać kodu!")

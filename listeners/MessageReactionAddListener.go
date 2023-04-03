@@ -2,7 +2,7 @@ package listeners
 
 import (
 	"csrvbot/internal/repos"
-	"csrvbot/pkg"
+	"csrvbot/pkg/discord"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"log"
@@ -59,7 +59,7 @@ func (h MessageReactionAddListener) Handle(s *discordgo.Session, r *discordgo.Me
 	}
 
 	if isThxMessage {
-		if !pkg.HasAdminPermissions(s, h.ServerRepo, member, r.GuildID) {
+		if !discord.HasAdminPermissions(s, h.ServerRepo, member, r.GuildID) {
 			err = s.MessageReactionRemove(r.ChannelID, r.MessageID, r.Emoji.Name, r.UserID)
 			if err != nil {
 				log.Println("("+r.GuildID+") "+"handleGiveawayReactions#s.MessageReactionRemove", err)
@@ -88,15 +88,15 @@ func (h MessageReactionAddListener) Handle(s *discordgo.Session, r *discordgo.Me
 				return
 			}
 
-			embed := pkg.ConstructThxEmbed(participants, h.GiveawayHours, participant.UserId, r.UserID, "confirm")
+			embed := discord.ConstructThxEmbed(participants, h.GiveawayHours, participant.UserId, r.UserID, "confirm")
 
 			_, err = s.ChannelMessageEditEmbed(r.ChannelID, r.MessageID, embed)
 			if err != nil {
 				log.Println("("+r.GuildID+") Could not update message", err)
 				return
 			}
-			pkg.NotifyThxOnThxInfoChannel(s, h.ServerRepo, h.GiveawayRepo, r.GuildID, r.ChannelID, r.MessageID, participant.UserId, r.UserID, "confirm")
-			pkg.CheckHelper(s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, r.GuildID, participant.UserId)
+			discord.NotifyThxOnThxInfoChannel(s, h.ServerRepo, h.GiveawayRepo, r.GuildID, r.ChannelID, r.MessageID, participant.UserId, r.UserID, "confirm")
+			discord.CheckHelper(s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, r.GuildID, participant.UserId)
 			break
 		case "⛔":
 			err := h.GiveawayRepo.UpdateParticipant(participant, r.UserID, member.User.Username, false)
@@ -112,15 +112,15 @@ func (h MessageReactionAddListener) Handle(s *discordgo.Session, r *discordgo.Me
 				return
 			}
 
-			embed := pkg.ConstructThxEmbed(participants, h.GiveawayHours, participant.UserId, r.UserID, "reject")
+			embed := discord.ConstructThxEmbed(participants, h.GiveawayHours, participant.UserId, r.UserID, "reject")
 
 			_, err = s.ChannelMessageEditEmbed(r.ChannelID, r.MessageID, embed)
 			if err != nil {
 				log.Println("("+r.GuildID+") Could not update message", err)
 				return
 			}
-			pkg.NotifyThxOnThxInfoChannel(s, h.ServerRepo, h.GiveawayRepo, r.GuildID, r.ChannelID, r.MessageID, participant.UserId, r.UserID, "reject")
-			pkg.CheckHelper(s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, r.GuildID, participant.UserId)
+			discord.NotifyThxOnThxInfoChannel(s, h.ServerRepo, h.GiveawayRepo, r.GuildID, r.ChannelID, r.MessageID, participant.UserId, r.UserID, "reject")
+			discord.CheckHelper(s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, r.GuildID, participant.UserId)
 			break
 		}
 	} else if isThxmeMessage {
@@ -158,7 +158,7 @@ func (h MessageReactionAddListener) Handle(s *discordgo.Session, r *discordgo.Me
 				return
 			}
 
-			embed := pkg.ConstructThxEmbed(participants, h.GiveawayHours, candidate.CandidateId, "", "wait")
+			embed := discord.ConstructThxEmbed(participants, h.GiveawayHours, candidate.CandidateId, "", "wait")
 
 			err = s.MessageReactionRemove(r.ChannelID, r.MessageID, r.Emoji.Name, r.UserID)
 
@@ -186,7 +186,7 @@ func (h MessageReactionAddListener) Handle(s *discordgo.Session, r *discordgo.Me
 				return
 			}
 			log.Println("(" + r.GuildID + ") " + member.User.Username + " has thanked " + candidate.CandidateName)
-			pkg.NotifyThxOnThxInfoChannel(s, h.ServerRepo, h.GiveawayRepo, r.GuildID, r.ChannelID, r.MessageID, candidate.CandidateId, "", "wait")
+			discord.NotifyThxOnThxInfoChannel(s, h.ServerRepo, h.GiveawayRepo, r.GuildID, r.ChannelID, r.MessageID, candidate.CandidateId, "", "wait")
 
 			break
 		case "⛔":

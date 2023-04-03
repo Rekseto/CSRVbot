@@ -2,7 +2,7 @@ package commands
 
 import (
 	"csrvbot/internal/repos"
-	"csrvbot/pkg"
+	"csrvbot/pkg/discord"
 	"github.com/bwmarrin/discordgo"
 	"log"
 )
@@ -56,7 +56,7 @@ func (h GiveawayCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCr
 		Data: &discordgo.InteractionResponseData{
 			Flags: discordgo.MessageFlagsEphemeral,
 			Embeds: []*discordgo.MessageEmbed{
-				pkg.ConstructInfoEmbed(participants, h.GiveawayHours), // todo json config
+				discord.ConstructInfoEmbed(participants, h.GiveawayHours),
 			},
 		},
 	})

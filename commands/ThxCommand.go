@@ -2,7 +2,7 @@ package commands
 
 import (
 	"csrvbot/internal/repos"
-	"csrvbot/pkg"
+	"csrvbot/pkg/discord"
 	"github.com/bwmarrin/discordgo"
 	"log"
 )
@@ -57,11 +57,11 @@ func (h ThxCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate)
 	selectedUser := i.ApplicationCommandData().Options[0].UserValue(s)
 	author := i.Member.User
 	if author.ID == selectedUser.ID {
-		pkg.RespondWithMessage(s, i, "Nie można dziękować sobie!")
+		discord.RespondWithMessage(s, i, "Nie można dziękować sobie!")
 		return
 	}
 	if selectedUser.Bot {
-		pkg.RespondWithMessage(s, i, "Nie można dziękować botom!")
+		discord.RespondWithMessage(s, i, "Nie można dziękować botom!")
 		return
 	}
 	isUserBlacklisted, err := h.UserRepo.IsUserBlacklisted(i.GuildID, selectedUser.ID)
@@ -70,7 +70,7 @@ func (h ThxCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate)
 		return
 	}
 	if isUserBlacklisted {
-		pkg.RespondWithMessage(s, i, "Ten użytkownik jest na czarnej liście i nie może brać udziału :(")
+		discord.RespondWithMessage(s, i, "Ten użytkownik jest na czarnej liście i nie może brać udziału :(")
 		return
 	}
 	giveaway, err := h.GiveawayRepo.GetGiveawayForGuild(i.GuildID)
@@ -84,7 +84,7 @@ func (h ThxCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate)
 		return
 	}
 
-	embed := pkg.ConstructThxEmbed(participants, h.GiveawayHours, selectedUser.ID, "", "wait")
+	embed := discord.ConstructThxEmbed(participants, h.GiveawayHours, selectedUser.ID, "", "wait")
 
 	err = s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -113,7 +113,7 @@ func (h ThxCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate)
 		return
 	}
 	log.Println("(" + i.GuildID + ") " + author.Username + " has thanked " + selectedUser.Username)
-	pkg.NotifyThxOnThxInfoChannel(s, h.ServerRepo, h.GiveawayRepo, i.GuildID, i.ChannelID, response.ID, selectedUser.ID, "", "wait")
+	discord.NotifyThxOnThxInfoChannel(s, h.ServerRepo, h.GiveawayRepo, i.GuildID, i.ChannelID, response.ID, selectedUser.ID, "", "wait")
 
 	for err = s.MessageReactionAdd(i.ChannelID, response.ID, "✅"); err != nil; err = s.MessageReactionAdd(i.ChannelID, response.ID, "✅") {
 	}

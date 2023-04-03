@@ -2,7 +2,7 @@ package commands
 
 import (
 	"csrvbot/internal/repos"
-	"csrvbot/pkg"
+	"csrvbot/pkg/discord"
 	"github.com/bwmarrin/discordgo"
 	"log"
 )
@@ -40,7 +40,7 @@ func (h ResendCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCrea
 		log.Println("ResendCommand#GetLastCodesForUser", err)
 		return
 	}
-	embed := pkg.ConstructResendEmbed(codes)
+	embed := discord.ConstructResendEmbed(codes)
 
 	dm, err := s.UserChannelCreate(i.Member.User.ID)
 	if err != nil {

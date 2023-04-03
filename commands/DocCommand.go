@@ -2,6 +2,7 @@ package commands
 
 import (
 	"csrvbot/pkg"
+	"csrvbot/pkg/discord"
 	"github.com/bwmarrin/discordgo"
 	"log"
 )
@@ -52,12 +53,12 @@ func (h DocCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate)
 	docExists, err := pkg.GetDocExists(docName)
 	if err != nil {
 		log.Println("Could not get doc", err)
-		pkg.RespondWithMessage(s, i, "Wystąpił błąd podczas wyszukiwania poradnika")
+		discord.RespondWithMessage(s, i, "Wystąpił błąd podczas wyszukiwania poradnika")
 		return
 	}
 
 	if !docExists {
-		pkg.RespondWithMessage(s, i, "Taki poradnik nie istnieje")
+		discord.RespondWithMessage(s, i, "Taki poradnik nie istnieje")
 		return
 	}
 
@@ -65,7 +66,7 @@ func (h DocCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate)
 	if len(i.ApplicationCommandData().Options) == 2 {
 		anchor = "#" + i.ApplicationCommandData().Options[1].StringValue()
 	}
-	pkg.RespondWithMessage(s, i, "<https://github.com/craftserve/docs/blob/master/"+docName+".md"+anchor+">")
+	discord.RespondWithMessage(s, i, "<https://github.com/craftserve/docs/blob/master/"+docName+".md"+anchor+">")
 }
 
 func (h DocCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.InteractionCreate) {

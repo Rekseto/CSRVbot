@@ -2,7 +2,7 @@ package commands
 
 import (
 	"csrvbot/internal/repos"
-	"csrvbot/pkg"
+	"csrvbot/pkg/discord"
 	"github.com/bwmarrin/discordgo"
 	"log"
 )
@@ -57,11 +57,11 @@ func (h ThxmeCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreat
 	selectedUser := i.ApplicationCommandData().Options[0].UserValue(s)
 	author := i.Member.User
 	if author.ID == selectedUser.ID {
-		pkg.RespondWithMessage(s, i, "Nie można poprosić o podziękowanie samego siebie!")
+		discord.RespondWithMessage(s, i, "Nie można poprosić o podziękowanie samego siebie!")
 		return
 	}
 	if selectedUser.Bot {
-		pkg.RespondWithMessage(s, i, "Nie można prosić o podziękowanie bota!")
+		discord.RespondWithMessage(s, i, "Nie można prosić o podziękowanie bota!")
 		return
 	}
 	isUserBlacklisted, err := h.UserRepo.IsUserBlacklisted(i.GuildID, selectedUser.ID)
@@ -70,11 +70,11 @@ func (h ThxmeCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreat
 		return
 	}
 	if isUserBlacklisted {
-		pkg.RespondWithMessage(s, i, "Nie możesz poprosić o podziękowanie, gdyż jesteś na czarnej liście!")
+		discord.RespondWithMessage(s, i, "Nie możesz poprosić o podziękowanie, gdyż jesteś na czarnej liście!")
 		return
 	}
 
-	pkg.RespondWithMessage(s, i, selectedUser.Mention()+", czy chcesz podziękować użytkownikowi "+author.Mention()+"?")
+	discord.RespondWithMessage(s, i, selectedUser.Mention()+", czy chcesz podziękować użytkownikowi "+author.Mention()+"?")
 
 	response, err := s.InteractionResponse(i.Interaction)
 	if err != nil {
