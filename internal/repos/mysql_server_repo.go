@@ -9,7 +9,7 @@ type ServerRepo struct {
 }
 
 func NewServerRepo(mysql *gorp.DbMap) *ServerRepo {
-	mysql.AddTableWithName(ServerConfig{}, "ServerConfig").SetKeys(true, "id")
+	mysql.AddTableWithName(ServerConfig{}, "server_configs").SetKeys(true, "id")
 
 	return &ServerRepo{mysql: mysql}
 }
@@ -26,7 +26,7 @@ type ServerConfig struct {
 
 func (repo *ServerRepo) GetServerConfigForGuild(guildId string) (*ServerConfig, error) {
 	var serverConfig ServerConfig
-	err := repo.mysql.SelectOne(&serverConfig, "SELECT * FROM ServerConfig WHERE guild_id = ?", guildId)
+	err := repo.mysql.SelectOne(&serverConfig, "SELECT * FROM server_configs WHERE guild_id = ?", guildId)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func (repo *ServerRepo) GetAdminRoleForGuild(guildId string) (string, error) {
 }
 
 func (repo *ServerRepo) GetMainChannelForGuild(guildId string) (string, error) {
-	str, err := repo.mysql.SelectStr("SELECT main_channel FROM ServerConfig WHERE guild_id = ?", guildId)
+	str, err := repo.mysql.SelectStr("SELECT main_channel FROM server_configs WHERE guild_id = ?", guildId)
 	if err != nil {
 		return "", err
 	}
@@ -64,7 +64,7 @@ func (repo *ServerRepo) GetMainChannelForGuild(guildId string) (string, error) {
 }
 
 func (repo *ServerRepo) SetMainChannelForGuild(guildId, channelId string) error {
-	_, err := repo.mysql.Exec("UPDATE ServerConfig SET main_channel = ? WHERE guild_id = ?", channelId, guildId)
+	_, err := repo.mysql.Exec("UPDATE server_configs SET main_channel = ? WHERE guild_id = ?", channelId, guildId)
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func (repo *ServerRepo) SetMainChannelForGuild(guildId, channelId string) error 
 }
 
 func (repo *ServerRepo) SetThxInfoChannelForGuild(guildId, channelId string) error {
-	_, err := repo.mysql.Exec("UPDATE ServerConfig SET thx_info_channel = ? WHERE guild_id = ?", channelId, guildId)
+	_, err := repo.mysql.Exec("UPDATE server_configs SET thx_info_channel = ? WHERE guild_id = ?", channelId, guildId)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func (repo *ServerRepo) SetThxInfoChannelForGuild(guildId, channelId string) err
 }
 
 func (repo *ServerRepo) SetAdminRoleForGuild(guildId, roleName string) error {
-	_, err := repo.mysql.Exec("UPDATE ServerConfig SET admin_role = ? WHERE guild_id = ?", roleName, guildId)
+	_, err := repo.mysql.Exec("UPDATE server_configs SET admin_role = ? WHERE guild_id = ?", roleName, guildId)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func (repo *ServerRepo) SetAdminRoleForGuild(guildId, roleName string) error {
 }
 
 func (repo *ServerRepo) SetHelperRoleForGuild(guildId, roleName string) error {
-	_, err := repo.mysql.Exec("UPDATE ServerConfig SET helper_role_name = ? WHERE guild_id = ?", roleName, guildId)
+	_, err := repo.mysql.Exec("UPDATE server_configs SET helper_role_name = ? WHERE guild_id = ?", roleName, guildId)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func (repo *ServerRepo) SetHelperRoleForGuild(guildId, roleName string) error {
 }
 
 func (repo *ServerRepo) SetHelperThxesNeededForGuild(guildId string, thxesNeeded uint64) error {
-	_, err := repo.mysql.Exec("UPDATE ServerConfig SET helper_role_thxes_needed = ? WHERE guild_id = ?", thxesNeeded, guildId)
+	_, err := repo.mysql.Exec("UPDATE server_configs SET helper_role_thxes_needed = ? WHERE guild_id = ?", thxesNeeded, guildId)
 	if err != nil {
 		return err
 	}

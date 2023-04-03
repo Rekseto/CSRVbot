@@ -11,9 +11,9 @@ type UserRepo struct {
 }
 
 func NewUserRepo(mysql *gorp.DbMap) *UserRepo {
-	mysql.AddTableWithName(Blacklist{}, "Blacklists").SetKeys(true, "id").SetUniqueTogether("guild_id", "user_id")
-	mysql.AddTableWithName(MemberRole{}, "MemberRoles").SetKeys(true, "id")
-	mysql.AddTableWithName(HelperBlacklist{}, "HelperBlacklist").SetKeys(true, "id").SetUniqueTogether("guild_id", "user_id")
+	mysql.AddTableWithName(Blacklist{}, "blacklists").SetKeys(true, "id").SetUniqueTogether("guild_id", "user_id")
+	mysql.AddTableWithName(MemberRole{}, "member_roles").SetKeys(true, "id")
+	mysql.AddTableWithName(HelperBlacklist{}, "helper_blacklists").SetKeys(true, "id").SetUniqueTogether("guild_id", "user_id")
 
 	return &UserRepo{mysql: mysql}
 }
@@ -41,7 +41,7 @@ type HelperBlacklist struct {
 
 func (repo *UserRepo) GetRolesForMember(guildId, memberId string) ([]MemberRole, error) {
 	var memberRoles []MemberRole
-	_, err := repo.mysql.Select(&memberRoles, "SELECT * FROM MemberRoles WHERE guild_id = ? AND member_id = ?", guildId, memberId)
+	_, err := repo.mysql.Select(&memberRoles, "SELECT * FROM member_roles WHERE guild_id = ? AND member_id = ?", guildId, memberId)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (repo *UserRepo) AddRoleForMember(guildId, memberId, roleId string) error {
 }
 
 func (repo *UserRepo) RemoveRoleForMember(guildId, memberId, roleId string) error {
-	_, err := repo.mysql.Exec("DELETE FROM MemberRoles WHERE guild_id = ? AND member_id = ? AND role_id = ?", guildId, memberId, roleId)
+	_, err := repo.mysql.Exec("DELETE FROM member_roles WHERE guild_id = ? AND member_id = ? AND role_id = ?", guildId, memberId, roleId)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (repo *UserRepo) RemoveRoleForMember(guildId, memberId, roleId string) erro
 
 func (repo *UserRepo) IsUserHelperBlacklisted(userId string, guildId string) bool {
 	var helperBlacklist HelperBlacklist
-	err := repo.mysql.SelectOne(&helperBlacklist, "SELECT * FROM HelperBlacklist WHERE user_id = ? AND guild_id = ?", userId, guildId)
+	err := repo.mysql.SelectOne(&helperBlacklist, "SELECT * FROM helper_blacklists WHERE user_id = ? AND guild_id = ?", userId, guildId)
 
 	if err == sql.ErrNoRows {
 		return false
@@ -121,7 +121,7 @@ func (repo *UserRepo) UpdateMemberSavedRoles(memberRoles []string, memberId, gui
 }
 
 func (repo *UserRepo) IsUserBlacklisted(userId string, guildId string) bool {
-	ret, err := repo.mysql.SelectInt("SELECT count(*) FROM Blacklists WHERE guild_id = ? AND user_id = ?", guildId, userId)
+	ret, err := repo.mysql.SelectInt("SELECT count(*) FROM blacklists WHERE guild_id = ? AND user_id = ?", guildId, userId)
 	if err != nil {
 		log.Println("("+guildId+") isBlacklisted#DbMap.SelectInt", err)
 		return false
@@ -142,7 +142,7 @@ func (repo *UserRepo) AddBlacklistForUser(userId, guildId, blacklisterId string)
 }
 
 func (repo *UserRepo) RemoveBlacklistForUser(userId, guildId string) error {
-	_, err := repo.mysql.Exec("DELETE FROM Blacklists WHERE guild_id = ? AND user_id = ?", guildId, userId)
+	_, err := repo.mysql.Exec("DELETE FROM blacklists WHERE guild_id = ? AND user_id = ?", guildId, userId)
 	if err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (repo *UserRepo) AddHelperBlacklistForUser(userId, guildId, blacklisterId s
 }
 
 func (repo *UserRepo) RemoveHelperBlacklistForUser(userId, guildId string) error {
-	_, err := repo.mysql.Exec("DELETE FROM HelperBlacklist WHERE guild_id = ? AND user_id = ?", guildId, userId)
+	_, err := repo.mysql.Exec("DELETE FROM helper_blacklists WHERE guild_id = ? AND user_id = ?", guildId, userId)
 	if err != nil {
 		return err
 	}

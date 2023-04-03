@@ -12,10 +12,10 @@ type GiveawayRepo struct {
 }
 
 func NewGiveawayRepo(mysql *gorp.DbMap) *GiveawayRepo {
-	mysql.AddTableWithName(Giveaway{}, "Giveaways").SetKeys(true, "id")
-	mysql.AddTableWithName(Participant{}, "Participants").SetKeys(true, "id")
-	mysql.AddTableWithName(ParticipantCandidate{}, "ParticipantCandidates").SetKeys(true, "id")
-	mysql.AddTableWithName(ThxNotification{}, "ThxNotifications").SetKeys(true, "id")
+	mysql.AddTableWithName(Giveaway{}, "giveaways").SetKeys(true, "id")
+	mysql.AddTableWithName(Participant{}, "participants").SetKeys(true, "id")
+	mysql.AddTableWithName(ParticipantCandidate{}, "participant_candidates").SetKeys(true, "id")
+	mysql.AddTableWithName(ThxNotification{}, "thx_notifications").SetKeys(true, "id")
 
 	return &GiveawayRepo{mysql: mysql}
 }
@@ -75,7 +75,7 @@ type ParticipantWithThxAmount struct {
 
 func (repo *GiveawayRepo) GetGiveawayForGuild(guildId string) (*Giveaway, error) {
 	var giveaway Giveaway
-	err := repo.mysql.SelectOne(&giveaway, "SELECT * FROM Giveaways WHERE guild_id = ? AND end_time IS NULL", guildId)
+	err := repo.mysql.SelectOne(&giveaway, "SELECT * FROM giveaways WHERE guild_id = ? AND end_time IS NULL", guildId)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -87,7 +87,7 @@ func (repo *GiveawayRepo) GetGiveawayForGuild(guildId string) (*Giveaway, error)
 
 func (repo *GiveawayRepo) GetParticipantNamesForGiveaway(giveawayId int) ([]string, error) {
 	var participants []Participant
-	_, err := repo.mysql.Select(&participants, "SELECT user_name FROM Participants WHERE giveaway_id = ? AND is_accepted = true", giveawayId)
+	_, err := repo.mysql.Select(&participants, "SELECT user_name FROM participants WHERE giveaway_id = ? AND is_accepted = true", giveawayId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, err
@@ -153,7 +153,7 @@ func (repo *GiveawayRepo) InsertParticipantCandidate(guildId, guildName, candida
 
 func (repo *GiveawayRepo) GetParticipantsWithThxAmount(guildId string, minThxAmount int) ([]ParticipantWithThxAmount, error) {
 	var helpers []ParticipantWithThxAmount
-	_, err := repo.mysql.Select(&helpers, "SELECT * FROM (SELECT user_id, count(*) AS amount FROM Participants WHERE guild_id=? AND is_accepted=1 GROUP BY user_id) AS a WHERE amount > ?", guildId, minThxAmount)
+	_, err := repo.mysql.Select(&helpers, "SELECT * FROM (SELECT user_id, count(*) AS amount FROM participants WHERE guild_id=? AND is_accepted=1 GROUP BY user_id) AS a WHERE amount > ?", guildId, minThxAmount)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +161,7 @@ func (repo *GiveawayRepo) GetParticipantsWithThxAmount(guildId string, minThxAmo
 }
 
 func (repo *GiveawayRepo) HasThxAmount(guildId, memberId string, minThxAmount int) bool {
-	ret, err := repo.mysql.SelectInt("SELECT count(*) AS amount  FROM Participants WHERE guild_id=? AND user_id=? AND is_accepted=1 HAVING amount > ?", guildId, memberId, minThxAmount)
+	ret, err := repo.mysql.SelectInt("SELECT count(*) AS amount  FROM participants WHERE guild_id=? AND user_id=? AND is_accepted=1 HAVING amount > ?", guildId, memberId, minThxAmount)
 	if err != nil {
 		log.Println("HasThxAmount#DbMap.SelectInt", err)
 		return false
@@ -171,7 +171,7 @@ func (repo *GiveawayRepo) HasThxAmount(guildId, memberId string, minThxAmount in
 
 func (repo *GiveawayRepo) GetParticipantsForGiveaway(giveawayId int) ([]Participant, error) {
 	var participants []Participant
-	_, err := repo.mysql.Select(&participants, "SELECT * FROM Participants WHERE giveaway_id = ? AND is_accepted = true", giveawayId)
+	_, err := repo.mysql.Select(&participants, "SELECT * FROM participants WHERE giveaway_id = ? AND is_accepted = true", giveawayId)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +180,7 @@ func (repo *GiveawayRepo) GetParticipantsForGiveaway(giveawayId int) ([]Particip
 
 func (repo *GiveawayRepo) GetThxNotification(messageId string) (*ThxNotification, error) {
 	var notification ThxNotification
-	err := repo.mysql.SelectOne(&notification, "SELECT * FROM ThxNotifications WHERE message_id = ?", messageId)
+	err := repo.mysql.SelectOne(&notification, "SELECT * FROM thx_notifications WHERE message_id = ?", messageId)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +200,7 @@ func (repo *GiveawayRepo) InsertThxNotification(thxMessageId string, notificatio
 }
 
 func (repo *GiveawayRepo) IsThxMessage(messageId string) bool {
-	ret, err := repo.mysql.SelectInt("SELECT count(*) FROM Participants WHERE message_id = ?", messageId)
+	ret, err := repo.mysql.SelectInt("SELECT count(*) FROM participants WHERE message_id = ?", messageId)
 	if err != nil {
 		log.Println("IsThxMessage#DbMap.SelectInt", err)
 		return false
@@ -210,7 +210,7 @@ func (repo *GiveawayRepo) IsThxMessage(messageId string) bool {
 }
 
 func (repo *GiveawayRepo) IsThxmeMessage(messageId string) bool {
-	ret, err := repo.mysql.SelectInt("SELECT count(*) FROM ParticipantCandidates WHERE message_id = ?", messageId)
+	ret, err := repo.mysql.SelectInt("SELECT count(*) FROM participant_candidates WHERE message_id = ?", messageId)
 	if err != nil {
 		log.Println("IsThxMessage#DbMap.SelectInt", err)
 		return false
@@ -221,7 +221,7 @@ func (repo *GiveawayRepo) IsThxmeMessage(messageId string) bool {
 
 func (repo *GiveawayRepo) GetParticipant(messageId string) (*Participant, error) {
 	var participant Participant
-	err := repo.mysql.SelectOne(&participant, "SELECT * FROM Participants WHERE message_id = ?", messageId) //fixme error when selecting accepted thx sql: Scan error on column index 10, name "accept_time": unsupported Scan, storing driver.Value type []uint8 into type *time.Time
+	err := repo.mysql.SelectOne(&participant, "SELECT * FROM participants WHERE message_id = ?", messageId) //fixme error when selecting accepted thx sql: Scan error on column index 10, name "accept_time": unsupported Scan, storing driver.Value type []uint8 into type *time.Time
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -246,7 +246,7 @@ func (repo *GiveawayRepo) UpdateParticipant(participant *Participant, acceptUser
 
 func (repo *GiveawayRepo) GetParticipantCandidate(messageId string) (*ParticipantCandidate, error) {
 	var participantCandidate ParticipantCandidate
-	err := repo.mysql.SelectOne(&participantCandidate, "SELECT * FROM ParticipantCandidates WHERE message_id = ?", messageId)
+	err := repo.mysql.SelectOne(&participantCandidate, "SELECT * FROM participant_candidates WHERE message_id = ?", messageId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -283,7 +283,7 @@ func (repo *GiveawayRepo) UpdateGiveaway(giveaway *Giveaway, messageId, code, wi
 
 func (repo *GiveawayRepo) GetUnfinishedGiveaways() ([]Giveaway, error) {
 	var giveaways []Giveaway
-	_, err := repo.mysql.Select(&giveaways, "SELECT * FROM Giveaways WHERE end_time IS NULL")
+	_, err := repo.mysql.Select(&giveaways, "SELECT * FROM giveaways WHERE end_time IS NULL")
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +291,7 @@ func (repo *GiveawayRepo) GetUnfinishedGiveaways() ([]Giveaway, error) {
 }
 
 func (repo *GiveawayRepo) RemoveParticipants(giveawayId int, participantId string) error {
-	_, err := repo.mysql.Exec("UPDATE Participants SET is_accepted=false WHERE giveaway_id = ? AND user_id = ?", giveawayId, participantId)
+	_, err := repo.mysql.Exec("UPDATE participants SET is_accepted=false WHERE giveaway_id = ? AND user_id = ?", giveawayId, participantId)
 	if err != nil {
 		return err
 	}
@@ -299,7 +299,7 @@ func (repo *GiveawayRepo) RemoveParticipants(giveawayId int, participantId strin
 }
 
 func (repo *GiveawayRepo) HasWonGiveawayByMessageId(messageId, userId string) bool {
-	ret, err := repo.mysql.SelectInt("SELECT count(*) FROM Giveaways WHERE info_message_id = ? AND winner_id = ?", messageId, userId)
+	ret, err := repo.mysql.SelectInt("SELECT count(*) FROM giveaways WHERE info_message_id = ? AND winner_id = ?", messageId, userId)
 	if err != nil {
 		log.Println("HasWonGiveawayByMessageId#DbMap.SelectInt", err)
 		return false
@@ -310,7 +310,7 @@ func (repo *GiveawayRepo) HasWonGiveawayByMessageId(messageId, userId string) bo
 
 func (repo *GiveawayRepo) GetCodeForInfoMessage(infoMessageId string) (string, error) {
 	var code string
-	err := repo.mysql.SelectOne(&code, "SELECT code FROM Giveaways WHERE info_message_id = ?", infoMessageId)
+	err := repo.mysql.SelectOne(&code, "SELECT code FROM giveaways WHERE info_message_id = ?", infoMessageId)
 	if err != nil {
 		return "", err
 	}
@@ -319,7 +319,7 @@ func (repo *GiveawayRepo) GetCodeForInfoMessage(infoMessageId string) (string, e
 
 func (repo *GiveawayRepo) GetLastCodesForUser(userId string, limit int) ([]string, error) {
 	var codes []string
-	_, err := repo.mysql.Select(&codes, "SELECT code FROM Giveaways WHERE winner_id = ? ORDER BY end_time DESC LIMIT ?", userId, limit)
+	_, err := repo.mysql.Select(&codes, "SELECT code FROM giveaways WHERE winner_id = ? ORDER BY end_time DESC LIMIT ?", userId, limit)
 	if err != nil {
 		return nil, err
 	}
