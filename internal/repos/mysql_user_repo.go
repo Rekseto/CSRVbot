@@ -66,21 +66,21 @@ func (repo *UserRepo) RemoveRoleForMember(guildId, memberId, roleId string) erro
 	return nil
 }
 
-func (repo *UserRepo) IsUserHelperBlacklisted(userId string, guildId string) bool {
-	var helperBlacklist HelperBlacklist
+func (repo *UserRepo) IsUserHelperBlacklisted(userId string, guildId string) (bool, error) {
+	var helperBlacklist HelperBlacklist // todo: use another query to check if user is blacklisted
 	err := repo.mysql.SelectOne(&helperBlacklist, "SELECT * FROM helper_blacklists WHERE user_id = ? AND guild_id = ?", userId, guildId)
 
 	if err == sql.ErrNoRows {
-		return false
+		return false, nil
 	}
 
 	if err != nil {
 		log.Panicln("("+userId+") checkUserBlacklist#DbMap.SelectOne", err)
 	}
-	return true
+	return true, nil
 }
 
-func (repo *UserRepo) UpdateMemberSavedRoles(memberRoles []string, memberId, guildId string) {
+func (repo *UserRepo) UpdateMemberSavedRoles(memberRoles []string, memberId, guildId string) { //todo: how to properly return errors from this?
 	savedRoles, err := repo.GetRolesForMember(guildId, memberId)
 	if err != nil {
 		log.Println("("+guildId+") "+"updateMemberSavedRoles Error while getting saved roles", err)
@@ -120,16 +120,12 @@ func (repo *UserRepo) UpdateMemberSavedRoles(memberRoles []string, memberId, gui
 	}
 }
 
-func (repo *UserRepo) IsUserBlacklisted(userId string, guildId string) bool {
+func (repo *UserRepo) IsUserBlacklisted(userId string, guildId string) (bool, error) {
 	ret, err := repo.mysql.SelectInt("SELECT count(*) FROM blacklists WHERE guild_id = ? AND user_id = ?", guildId, userId)
 	if err != nil {
-		log.Println("("+guildId+") isBlacklisted#DbMap.SelectInt", err)
-		return false
+		return false, err
 	}
-	if ret > 0 {
-		return true
-	}
-	return false
+	return ret > 0, nil
 }
 
 func (repo *UserRepo) AddBlacklistForUser(userId, guildId, blacklisterId string) error {

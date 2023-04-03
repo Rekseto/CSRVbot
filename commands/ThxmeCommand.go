@@ -64,7 +64,12 @@ func (h ThxmeCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreat
 		pkg.RespondWithMessage(s, i, "Nie można prosić o podziękowanie bota!")
 		return
 	}
-	if h.UserRepo.IsUserBlacklisted(i.GuildID, author.ID) {
+	isUserBlacklisted, err := h.UserRepo.IsUserBlacklisted(i.GuildID, selectedUser.ID)
+	if err != nil {
+		log.Println("("+i.GuildID+") handleThxmeCommand#UserRepo.IsUserBlacklisted", err)
+		return
+	}
+	if isUserBlacklisted {
 		pkg.RespondWithMessage(s, i, "Nie możesz poprosić o podziękowanie, gdyż jesteś na czarnej liście!")
 		return
 	}

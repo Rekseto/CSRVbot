@@ -54,7 +54,12 @@ func CheckHelpers(session *discordgo.Session, serverRepo repos.ServerRepo, givea
 	for _, member := range members {
 		shouldHaveRole := false
 		for _, helper := range helpers {
-			if userRepo.IsUserHelperBlacklisted(member.User.ID, guildId) {
+			isHelperBlacklisted, err := userRepo.IsUserHelperBlacklisted(member.User.ID, guildId)
+			if err != nil {
+				log.Println("("+guildId+") checkHelpers#UserRepo.IsUserHelperBlacklisted", err)
+				continue
+			}
+			if isHelperBlacklisted {
 				shouldHaveRole = false
 				break
 			}
@@ -111,8 +116,16 @@ func CheckHelper(session *discordgo.Session, serverRepo repos.ServerRepo, giveaw
 		return
 	}
 
-	hasHelperAmount := giveawayRepo.HasThxAmount(guildId, memberId, serverConfig.HelperRoleThxesNeeded)
-	isHelperBlacklisted := userRepo.IsUserHelperBlacklisted(memberId, guildId)
+	hasHelperAmount, err := giveawayRepo.HasThxAmount(guildId, memberId, serverConfig.HelperRoleThxesNeeded)
+	if err != nil {
+		log.Println("("+guildId+") checkHelper#GiveawayRepo.HasThxAmount", err)
+		return
+	}
+	isHelperBlacklisted, err := userRepo.IsUserHelperBlacklisted(memberId, guildId)
+	if err != nil {
+		log.Println("("+guildId+") checkHelper#UserRepo.IsUserHelperBlacklisted", err)
+		return
+	}
 	hasRole := HasRoleById(member, roleId)
 	if !hasHelperAmount {
 		if hasRole {

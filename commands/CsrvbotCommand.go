@@ -305,12 +305,17 @@ func (h CsrvbotCommand) handleBlacklist(s *discordgo.Session, i *discordgo.Inter
 		pkg.RespondWithMessage(s, i, "Nie możesz dodać bota do blacklisty")
 		return
 	}
-	if h.UserRepo.IsUserBlacklisted(selectedUser.ID, i.GuildID) {
+	isUserBlacklisted, err := h.UserRepo.IsUserBlacklisted(selectedUser.ID, i.GuildID)
+	if err != nil {
+		log.Println("handleBlacklist h.UserRepo.IsUserBlacklisted", err)
+		return
+	}
+	if isUserBlacklisted {
 		pkg.RespondWithMessage(s, i, "Użytkownik jest już na blackliście")
 		return
 	}
 
-	err := h.UserRepo.AddBlacklistForUser(selectedUser.ID, i.GuildID, i.Member.User.ID)
+	err = h.UserRepo.AddBlacklistForUser(selectedUser.ID, i.GuildID, i.Member.User.ID)
 	if err != nil {
 		log.Println("handleBlacklist h.UserRepo.AddBlacklistForUser", err)
 		pkg.RespondWithMessage(s, i, "Nie udało się dodać użytkownika do blacklisty")
@@ -322,11 +327,17 @@ func (h CsrvbotCommand) handleBlacklist(s *discordgo.Session, i *discordgo.Inter
 
 func (h CsrvbotCommand) handleUnblacklist(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	selectedUser := i.ApplicationCommandData().Options[0].Options[0].UserValue(s)
-	if !h.UserRepo.IsUserBlacklisted(selectedUser.ID, i.GuildID) {
+
+	isUserBlacklisted, err := h.UserRepo.IsUserBlacklisted(selectedUser.ID, i.GuildID)
+	if err != nil {
+		log.Println("handleUnblacklist h.UserRepo.IsUserBlacklisted", err)
+		return
+	}
+	if !isUserBlacklisted {
 		pkg.RespondWithMessage(s, i, "Użytkownik nie jest na blackliście")
 		return
 	}
-	err := h.UserRepo.RemoveBlacklistForUser(selectedUser.ID, i.GuildID)
+	err = h.UserRepo.RemoveBlacklistForUser(selectedUser.ID, i.GuildID)
 	if err != nil {
 		log.Println("handleUnblacklist h.UserRepo.RemoveBlacklistForUser", err)
 		pkg.RespondWithMessage(s, i, "Nie udało się usunąć użytkownika z blacklisty")
@@ -342,12 +353,17 @@ func (h CsrvbotCommand) handleHelperBlacklist(s *discordgo.Session, i *discordgo
 		pkg.RespondWithMessage(s, i, "Nie możesz dodać bota do helper-blacklisty")
 		return
 	}
-	if h.UserRepo.IsUserHelperBlacklisted(selectedUser.ID, i.GuildID) {
+	isUserHelperBlacklisted, err := h.UserRepo.IsUserHelperBlacklisted(selectedUser.ID, i.GuildID)
+	if err != nil {
+		log.Println("handleHelperBlacklist h.UserRepo.IsUserHelperBlacklisted", err)
+		return
+	}
+	if isUserHelperBlacklisted {
 		pkg.RespondWithMessage(s, i, "Użytkownik jest już na helper-blackliście")
 		return
 	}
 
-	err := h.UserRepo.AddHelperBlacklistForUser(selectedUser.ID, i.GuildID, i.Member.User.ID)
+	err = h.UserRepo.AddHelperBlacklistForUser(selectedUser.ID, i.GuildID, i.Member.User.ID)
 	if err != nil {
 		log.Println("handleHelperBlacklist h.UserRepo.AddHelperBlacklistForUser", err)
 		pkg.RespondWithMessage(s, i, "Nie udało się dodać użytkownika do helper-blacklisty")
@@ -359,11 +375,17 @@ func (h CsrvbotCommand) handleHelperBlacklist(s *discordgo.Session, i *discordgo
 
 func (h CsrvbotCommand) handleHelperUnblacklist(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	selectedUser := i.ApplicationCommandData().Options[0].Options[0].UserValue(s)
-	if !h.UserRepo.IsUserHelperBlacklisted(selectedUser.ID, i.GuildID) {
+
+	isUserHelperBlacklisted, err := h.UserRepo.IsUserHelperBlacklisted(selectedUser.ID, i.GuildID)
+	if err != nil {
+		log.Println("handleHelperUnblacklist h.UserRepo.IsUserHelperBlacklisted", err)
+		return
+	}
+	if !isUserHelperBlacklisted {
 		pkg.RespondWithMessage(s, i, "Użytkownik nie jest na helper-blackliście")
 		return
 	}
-	err := h.UserRepo.RemoveHelperBlacklistForUser(selectedUser.ID, i.GuildID)
+	err = h.UserRepo.RemoveHelperBlacklistForUser(selectedUser.ID, i.GuildID)
 	if err != nil {
 		log.Println("handleHelperUnblacklist h.UserRepo.RemoveHelperBlacklistForUser", err)
 		pkg.RespondWithMessage(s, i, "Nie udało się usunąć użytkownika z helper-blacklisty")

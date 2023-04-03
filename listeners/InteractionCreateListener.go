@@ -68,7 +68,11 @@ func (h InteractionCreateListener) handleApplicationCommandsAutocomplete(s *disc
 func (h InteractionCreateListener) handleMessageComponents(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	switch i.MessageComponentData().CustomID {
 	case "winnercode":
-		hasWon := h.GiveawayRepo.HasWonGiveawayByMessageId(i.Message.ID, i.Member.User.ID)
+		hasWon, err := h.GiveawayRepo.HasWonGiveawayByMessageId(i.Message.ID, i.Member.User.ID)
+		if err != nil {
+			log.Println("("+i.GuildID+") handleMessageComponents#GiveawayRepo.HasWonGiveawayByMessageId", err)
+			return
+		}
 		if !hasWon {
 			err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,

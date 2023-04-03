@@ -47,7 +47,18 @@ func (h MessageReactionAddListener) Handle(s *discordgo.Session, r *discordgo.Me
 		return
 	}
 
-	if h.GiveawayRepo.IsThxMessage(r.MessageID) {
+	isThxMessage, err := h.GiveawayRepo.IsThxMessage(r.MessageID)
+	if err != nil {
+		log.Println("("+r.GuildID+") "+"handleGiveawayReactions#h.GiveawayRepo.IsThxMessage", err)
+		return
+	}
+	isThxmeMessage, err := h.GiveawayRepo.IsThxmeMessage(r.MessageID)
+	if err != nil {
+		log.Println("("+r.GuildID+") "+"handleGiveawayReactions#h.GiveawayRepo.IsThxmeMessage", err)
+		return
+	}
+
+	if isThxMessage {
 		if !pkg.HasAdminPermissions(s, h.ServerRepo, member, r.GuildID) {
 			err = s.MessageReactionRemove(r.ChannelID, r.MessageID, r.Emoji.Name, r.UserID)
 			if err != nil {
@@ -112,7 +123,7 @@ func (h MessageReactionAddListener) Handle(s *discordgo.Session, r *discordgo.Me
 			pkg.CheckHelper(s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, r.GuildID, participant.UserId)
 			break
 		}
-	} else if h.GiveawayRepo.IsThxmeMessage(r.MessageID) {
+	} else if isThxmeMessage {
 		candidate, err := h.GiveawayRepo.GetParticipantCandidate(r.MessageID)
 		if err != nil {
 			log.Println("handleGiveawayReactions#GetParticipant", err)

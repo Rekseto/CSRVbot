@@ -3,7 +3,6 @@ package repos
 import (
 	"database/sql"
 	"github.com/go-gorp/gorp"
-	"log"
 	"time"
 )
 
@@ -92,7 +91,6 @@ func (repo *GiveawayRepo) GetParticipantNamesForGiveaway(giveawayId int) ([]stri
 		if err == sql.ErrNoRows {
 			return nil, err
 		}
-		log.Println("getParticipantsNames#DbMap.Select", err)
 		return nil, err
 	}
 	names := make([]string, len(participants))
@@ -160,13 +158,12 @@ func (repo *GiveawayRepo) GetParticipantsWithThxAmount(guildId string, minThxAmo
 	return helpers, nil
 }
 
-func (repo *GiveawayRepo) HasThxAmount(guildId, memberId string, minThxAmount int) bool {
+func (repo *GiveawayRepo) HasThxAmount(guildId, memberId string, minThxAmount int) (bool, error) {
 	ret, err := repo.mysql.SelectInt("SELECT count(*) AS amount  FROM participants WHERE guild_id=? AND user_id=? AND is_accepted=1 HAVING amount > ?", guildId, memberId, minThxAmount)
 	if err != nil {
-		log.Println("HasThxAmount#DbMap.SelectInt", err)
-		return false
+		return false, err
 	}
-	return ret > 0
+	return ret > 0, nil
 }
 
 func (repo *GiveawayRepo) GetParticipantsForGiveaway(giveawayId int) ([]Participant, error) {
@@ -199,24 +196,22 @@ func (repo *GiveawayRepo) InsertThxNotification(thxMessageId string, notificatio
 	return nil
 }
 
-func (repo *GiveawayRepo) IsThxMessage(messageId string) bool {
+func (repo *GiveawayRepo) IsThxMessage(messageId string) (bool, error) {
 	ret, err := repo.mysql.SelectInt("SELECT count(*) FROM participants WHERE message_id = ?", messageId)
 	if err != nil {
-		log.Println("IsThxMessage#DbMap.SelectInt", err)
-		return false
+		return false, err
 	}
 
-	return ret == 1
+	return ret > 0, nil
 }
 
-func (repo *GiveawayRepo) IsThxmeMessage(messageId string) bool {
+func (repo *GiveawayRepo) IsThxmeMessage(messageId string) (bool, error) {
 	ret, err := repo.mysql.SelectInt("SELECT count(*) FROM participant_candidates WHERE message_id = ?", messageId)
 	if err != nil {
-		log.Println("IsThxMessage#DbMap.SelectInt", err)
-		return false
+		return false, err
 	}
 
-	return ret == 1
+	return ret > 0, nil
 }
 
 func (repo *GiveawayRepo) GetParticipant(messageId string) (*Participant, error) {
@@ -298,14 +293,13 @@ func (repo *GiveawayRepo) RemoveParticipants(giveawayId int, participantId strin
 	return nil
 }
 
-func (repo *GiveawayRepo) HasWonGiveawayByMessageId(messageId, userId string) bool {
+func (repo *GiveawayRepo) HasWonGiveawayByMessageId(messageId, userId string) (bool, error) {
 	ret, err := repo.mysql.SelectInt("SELECT count(*) FROM giveaways WHERE info_message_id = ? AND winner_id = ?", messageId, userId)
 	if err != nil {
-		log.Println("HasWonGiveawayByMessageId#DbMap.SelectInt", err)
-		return false
+		return false, err
 	}
 
-	return ret > 0
+	return ret > 0, nil
 }
 
 func (repo *GiveawayRepo) GetCodeForInfoMessage(infoMessageId string) (string, error) {
