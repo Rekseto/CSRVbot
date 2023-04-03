@@ -1,7 +1,7 @@
 package repos
 
 import (
-	"gopkg.in/gorp.v2"
+	"github.com/go-gorp/gorp"
 )
 
 type ServerRepo struct {

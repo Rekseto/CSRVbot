@@ -2,8 +2,8 @@ package pkg
 
 import (
 	"database/sql"
+	"github.com/go-gorp/gorp"
 	_ "github.com/go-sql-driver/mysql"
-	"gopkg.in/gorp.v2"
 	"log"
 )
 

@@ -2,7 +2,7 @@ package repos
 
 import (
 	"database/sql"
-	"gopkg.in/gorp.v2"
+	"github.com/go-gorp/gorp"
 	"log"
 	"time"
 )
@@ -221,7 +221,7 @@ func (repo *GiveawayRepo) IsThxmeMessage(messageId string) bool {
 
 func (repo *GiveawayRepo) GetParticipant(messageId string) (*Participant, error) {
 	var participant Participant
-	err := repo.mysql.SelectOne(&participant, "SELECT * FROM participants WHERE message_id = ?", messageId) //fixme error when selecting accepted thx sql: Scan error on column index 10, name "accept_time": unsupported Scan, storing driver.Value type []uint8 into type *time.Time
+	err := repo.mysql.SelectOne(&participant, "SELECT * FROM participants WHERE message_id = ?", messageId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil

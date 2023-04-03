@@ -2,7 +2,7 @@ package repos
 
 import (
 	"database/sql"
-	"gopkg.in/gorp.v2"
+	"github.com/go-gorp/gorp"
 	"log"
 )
 
