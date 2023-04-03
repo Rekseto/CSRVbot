@@ -5,6 +5,7 @@ import (
 	"csrvbot/internal/repos"
 	"csrvbot/listeners"
 	"csrvbot/pkg"
+	"csrvbot/pkg/database"
 	"encoding/json"
 	"github.com/bwmarrin/discordgo"
 	"github.com/robfig/cron"
@@ -13,11 +14,11 @@ import (
 )
 
 type Config struct {
-	MysqlString        string `json:"mysql_string"`
-	GiveawayCron       string `json:"cron_line"`
-	GiveawayTimeString string `json:"giveaway_time_string"`
-	SystemToken        string `json:"system_token"`
-	CsrvSecret         string `json:"csrv_secret"`
+	MysqlConfig        []database.MySQLConfiguration `json:"mysql_config"`
+	GiveawayCron       string                        `json:"cron_line"`
+	GiveawayTimeString string                        `json:"giveaway_time_string"`
+	SystemToken        string                        `json:"system_token"`
+	CsrvSecret         string                        `json:"csrv_secret"`
 }
 
 var BotConfig Config
@@ -35,17 +36,27 @@ func init() {
 }
 
 func main() {
-	err := pkg.InitDatabase(BotConfig.MysqlString)
+	db := database.NewProvider()
+
+	err := db.InitMySQLDatabases(BotConfig.MysqlConfig)
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
-	var dbMap = pkg.GetDbMap()
+
+	dbMap, err := db.GetMySQLDatabase("main")
+	if err != nil {
+		log.Panic(err)
+	}
+
+	err = db.CreateTablesIfNotExists()
+	if err != nil {
+		log.Panic(err)
+	}
 
 	var giveawayRepo = repos.NewGiveawayRepo(dbMap)
 	var serverRepo = repos.NewServerRepo(dbMap)
 	var userRepo = repos.NewUserRepo(dbMap)
 
-	pkg.CreateTablesIfNotExists()
 	session, err := discordgo.New("Bot " + os.Getenv("DISCORD_BOT_TOKEN"))
 	if err != nil {
 		panic(err)

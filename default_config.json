@@ -1,5 +1,11 @@
 {
-  "mysql_string": "login:password@tcp(adres_bazy:port_polaczenia)/nazwa_bazy?parseTime=true",
+  "mysql_config": [{
+    "name": "main",
+    "username": "login",
+    "password": "password",
+    "host": "address:port",
+    "database": "db_name"
+  }],
   "cron_line": "0 0 6,12,18 * *",
   "giveaway_time_string": "6:00, 12:00, 18:00",
   "system_token": "token bota",
