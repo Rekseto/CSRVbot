@@ -40,24 +40,24 @@ func main() {
 
 	err := db.InitMySQLDatabases(BotConfig.MysqlConfig)
 	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	dbMap, err := db.GetMySQLDatabase("main")
 	if err != nil {
-		log.Panic(err)
-	}
-
-	err = db.CreateTablesIfNotExists()
-	if err != nil {
-		log.Panic(err)
+		panic(err)
 	}
 
 	var giveawayRepo = repos.NewGiveawayRepo(dbMap)
 	var serverRepo = repos.NewServerRepo(dbMap)
 	var userRepo = repos.NewUserRepo(dbMap)
 
-	session, err := discordgo.New("Bot " + os.Getenv("DISCORD_BOT_TOKEN"))
+	err = db.CreateTablesIfNotExists()
+	if err != nil {
+		panic(err)
+	}
+
+	session, err := discordgo.New("Bot " + BotConfig.SystemToken)
 	if err != nil {
 		panic(err)
 	}

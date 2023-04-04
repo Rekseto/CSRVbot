@@ -36,7 +36,11 @@ func (p *Provider) InitMySQLDatabases(databases []MySQLConfiguration) error {
 
 		connection, err := sql.Open("mysql", databaseUrl)
 		if err != nil {
-			return fmt.Errorf("could not connect to database %s %w", database.Name, err)
+			return fmt.Errorf("could not open database %s %w", database.Name, err)
+		}
+
+		if err := connection.Ping(); err != nil {
+			return fmt.Errorf("could not ping database %s %w", database.Name, err)
 		}
 
 		log.Println("Connected to database", database.Name)
