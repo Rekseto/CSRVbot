@@ -40,13 +40,22 @@ func (h GuildCreateListener) createConfigurationIfNotExists(ctx context.Context,
 	for _, channel := range channels {
 		if channel.Name == "giveaway" {
 			giveawayChannel = channel.ID
+			break
+		}
+	}
+	var adminRole string
+	roles, _ := session.GuildRoles(guildID)
+	for _, role := range roles {
+		if role.Name == "CraftserveBotAdmin" {
+			adminRole = role.ID
+			break
 		}
 	}
 
 	_, err := h.ServerRepo.GetServerConfigForGuild(ctx, guildID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			err = h.ServerRepo.InsertServerConfig(ctx, guildID, giveawayChannel)
+			err = h.ServerRepo.InsertServerConfig(ctx, guildID, giveawayChannel, adminRole)
 			if err != nil {
 				log.Println("("+guildID+") Could not create server config", err)
 			}

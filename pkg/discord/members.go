@@ -34,7 +34,7 @@ func CheckHelpers(ctx context.Context, session *discordgo.Session, serverRepo re
 	if serverConfig.HelperRoleThxesNeeded <= 0 {
 		return
 	}
-	if serverConfig.HelperRoleName == "" {
+	if serverConfig.HelperRoleId == "" {
 		return
 	}
 
@@ -43,12 +43,6 @@ func CheckHelpers(ctx context.Context, session *discordgo.Session, serverRepo re
 	helpers, err := giveawayRepo.GetParticipantsWithThxAmount(ctx, guildId, serverConfig.HelperRoleThxesNeeded)
 	if err != nil {
 		log.Println("("+guildId+") checkHelpers#GiveawayRepo.GetParticipantsWithThxAmount", err)
-		return
-	}
-
-	roleId, err := GetRoleID(session, guildId, serverConfig.HelperRoleName)
-	if err != nil {
-		log.Println("("+guildId+") checkHelpers#pkg.GetRoleID", err)
 		return
 	}
 
@@ -69,13 +63,13 @@ func CheckHelpers(ctx context.Context, session *discordgo.Session, serverRepo re
 				break
 			}
 		}
-		hasRole := HasRoleById(member, roleId)
+		hasRole := HasRoleById(member, serverConfig.HelperRoleId)
 		if shouldHaveRole {
 			if hasRole {
 				continue
 			}
 			log.Println("Adding helper role to " + member.User.Username + " (" + member.User.ID + ")")
-			err = session.GuildMemberRoleAdd(guildId, member.User.ID, roleId)
+			err = session.GuildMemberRoleAdd(guildId, member.User.ID, serverConfig.HelperRoleId)
 			if err != nil {
 				log.Println("("+guildId+") checkHelpers#session.GuildMemberRoleAdd", err)
 			}
@@ -84,7 +78,7 @@ func CheckHelpers(ctx context.Context, session *discordgo.Session, serverRepo re
 				continue
 			}
 			log.Println("Removing helper role from " + member.User.Username + " (" + member.User.ID + ")")
-			err = session.GuildMemberRoleRemove(guildId, member.User.ID, roleId)
+			err = session.GuildMemberRoleRemove(guildId, member.User.ID, serverConfig.HelperRoleId)
 			if err != nil {
 				log.Println("("+guildId+") checkHelpers#session.GuildMemberRoleRemove", err)
 			}
@@ -101,19 +95,13 @@ func CheckHelper(ctx context.Context, session *discordgo.Session, serverRepo rep
 	if serverConfig.HelperRoleThxesNeeded <= 0 {
 		return
 	}
-	if serverConfig.HelperRoleName == "" {
+	if serverConfig.HelperRoleId == "" {
 		return
 	}
 
 	member, err := session.GuildMember(guildId, memberId)
 	if err != nil {
 		log.Println("("+guildId+") checkHelper#session.GuildMember", err)
-		return
-	}
-
-	roleId, err := GetRoleID(session, guildId, serverConfig.HelperRoleName)
-	if err != nil {
-		log.Println("("+guildId+") checkHelper#GetRoleID", err)
 		return
 	}
 
@@ -127,11 +115,11 @@ func CheckHelper(ctx context.Context, session *discordgo.Session, serverRepo rep
 		log.Println("("+guildId+") checkHelper#UserRepo.IsUserHelperBlacklisted", err)
 		return
 	}
-	hasRole := HasRoleById(member, roleId)
+	hasRole := HasRoleById(member, serverConfig.HelperRoleId)
 	if !hasHelperAmount {
 		if hasRole {
 			log.Println("Removing helper role from " + member.User.Username + " (" + member.User.ID + ")")
-			err = session.GuildMemberRoleRemove(guildId, memberId, roleId)
+			err = session.GuildMemberRoleRemove(guildId, memberId, serverConfig.HelperRoleId)
 			if err != nil {
 				log.Println("("+guildId+") checkHelper#session.GuildMemberRoleRemove", err)
 			}
@@ -141,7 +129,7 @@ func CheckHelper(ctx context.Context, session *discordgo.Session, serverRepo rep
 
 	if isHelperBlacklisted && hasRole {
 		log.Println("Removing helper role from " + member.User.Username + " (" + member.User.ID + ")")
-		err = session.GuildMemberRoleRemove(guildId, memberId, roleId)
+		err = session.GuildMemberRoleRemove(guildId, memberId, serverConfig.HelperRoleId)
 		if err != nil {
 			log.Println("("+guildId+") checkHelper#session.GuildMemberRoleRemove", err)
 		}
@@ -151,7 +139,7 @@ func CheckHelper(ctx context.Context, session *discordgo.Session, serverRepo rep
 		return
 	}
 	log.Println("Adding helper role to " + member.User.Username + " (" + member.User.ID + ")")
-	err = session.GuildMemberRoleAdd(guildId, memberId, roleId)
+	err = session.GuildMemberRoleAdd(guildId, memberId, serverConfig.HelperRoleId)
 	if err != nil {
 		log.Println("("+guildId+") checkHelper#session.GuildMemberRoleAdd", err)
 	}

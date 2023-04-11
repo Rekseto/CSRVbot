@@ -451,9 +451,9 @@ func (h CsrvbotCommand) handleAdminRoleSet(ctx context.Context, s *discordgo.Ses
 		discord.RespondWithMessage(s, i, "Nie udało się ustawić roli")
 		return
 	}
-	err = h.ServerRepo.SetAdminRoleForGuild(ctx, i.GuildID, role.Name)
+	err = h.ServerRepo.SetAdminRoleIdForGuild(ctx, i.GuildID, role.ID)
 	if err != nil {
-		log.Println("handleAdminRoleSet h.ServerRepo.SetAdminRoleForGuild", err)
+		log.Println("handleAdminRoleSet h.ServerRepo.SetAdminRoleIdForGuild", err)
 		discord.RespondWithMessage(s, i, "Nie udało się ustawić roli")
 		return
 	}
@@ -469,9 +469,9 @@ func (h CsrvbotCommand) handleHelperRoleSet(ctx context.Context, s *discordgo.Se
 		discord.RespondWithMessage(s, i, "Nie udało się ustawić roli")
 		return
 	}
-	err = h.ServerRepo.SetHelperRoleForGuild(ctx, i.GuildID, role.Name)
+	err = h.ServerRepo.SetHelperRoleIdForGuild(ctx, i.GuildID, role.ID)
 	if err != nil {
-		log.Println("handleHelperRoleSet h.ServerRepo.SetHelperRoleForGuild", err)
+		log.Println("handleHelperRoleSet h.ServerRepo.SetHelperRoleIdForGuild", err)
 		discord.RespondWithMessage(s, i, "Nie udało się ustawić roli")
 		return
 	}
