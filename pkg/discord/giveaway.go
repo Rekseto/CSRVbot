@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"context"
 	"csrvbot/internal/repos"
 	"csrvbot/internal/services"
 	"github.com/bwmarrin/discordgo"
@@ -9,8 +10,8 @@ import (
 	"time"
 )
 
-func FinishGiveaway(s *discordgo.Session, serverRepo repos.ServerRepo, giveawayRepo repos.GiveawayRepo, csrvClient services.CsrvClient, guildId string) {
-	giveaway, err := giveawayRepo.GetGiveawayForGuild(guildId)
+func FinishGiveaway(ctx context.Context, s *discordgo.Session, serverRepo repos.ServerRepo, giveawayRepo repos.GiveawayRepo, csrvClient services.CsrvClient, guildId string) {
+	giveaway, err := giveawayRepo.GetGiveawayForGuild(ctx, guildId)
 	if giveaway == nil || err != nil {
 		log.Println("("+guildId+") Could not get giveaway", err)
 		return
@@ -21,13 +22,13 @@ func FinishGiveaway(s *discordgo.Session, serverRepo repos.ServerRepo, giveawayR
 		return
 	}
 
-	giveawayChannelId, err := serverRepo.GetMainChannelForGuild(guildId)
+	giveawayChannelId, err := serverRepo.GetMainChannelForGuild(ctx, guildId)
 	if err != nil {
 		log.Println("("+guildId+") finishGiveaway#serverRepo.GetMainChannelForGuild", err)
 		return
 	}
 
-	participants, err := giveawayRepo.GetParticipantsForGiveaway(giveaway.Id)
+	participants, err := giveawayRepo.GetParticipantsForGiveaway(ctx, giveaway.Id)
 	if err != nil {
 		log.Println("("+guildId+") finishGiveaway#DbMap.Select", err)
 	}
@@ -37,7 +38,7 @@ func FinishGiveaway(s *discordgo.Session, serverRepo repos.ServerRepo, giveawayR
 		if err != nil {
 			log.Println("("+guildId+") finishGiveaway#session.ChannelMessageSend", err)
 		}
-		err = giveawayRepo.UpdateGiveaway(giveaway, message.ID, "", "", "")
+		err = giveawayRepo.UpdateGiveaway(ctx, giveaway, message.ID, "", "", "")
 		if err != nil {
 			log.Println("("+guildId+") finishGiveaway#DbMap.Update", err)
 		}
@@ -92,7 +93,7 @@ func FinishGiveaway(s *discordgo.Session, serverRepo repos.ServerRepo, giveawayR
 		log.Println("("+guildId+") finishGiveaway#session.ChannelMessageSendEmbed", err)
 	}
 
-	err = giveawayRepo.UpdateGiveaway(giveaway, message.ID, code, winner.UserId, member.User.Username)
+	err = giveawayRepo.UpdateGiveaway(ctx, giveaway, message.ID, code, winner.UserId, member.User.Username)
 	if err != nil {
 		log.Println("("+guildId+") finishGiveaway#DbMap.Update", err)
 	}
@@ -100,24 +101,24 @@ func FinishGiveaway(s *discordgo.Session, serverRepo repos.ServerRepo, giveawayR
 
 }
 
-func FinishGiveaways(s *discordgo.Session, giveawayRepo repos.GiveawayRepo, serverRepo repos.ServerRepo, csrvClient services.CsrvClient) {
-	giveaways, err := giveawayRepo.GetUnfinishedGiveaways()
+func FinishGiveaways(ctx context.Context, s *discordgo.Session, giveawayRepo repos.GiveawayRepo, serverRepo repos.ServerRepo, csrvClient services.CsrvClient) {
+	giveaways, err := giveawayRepo.GetUnfinishedGiveaways(ctx)
 	if err != nil {
 		log.Println("finishGiveaways#giveawayRepo.GetUnfinishedGiveaways", err)
 		return
 	}
 	for _, giveaway := range giveaways {
-		FinishGiveaway(s, serverRepo, giveawayRepo, csrvClient, giveaway.GuildId)
+		FinishGiveaway(ctx, s, serverRepo, giveawayRepo, csrvClient, giveaway.GuildId)
 		guild, err := s.Guild(giveaway.GuildId)
 		if err == nil {
-			CreateMissingGiveaways(s, serverRepo, giveawayRepo, guild)
+			CreateMissingGiveaways(ctx, s, serverRepo, giveawayRepo, guild)
 		}
 	}
 
 }
 
-func CreateMissingGiveaways(s *discordgo.Session, serverRepo repos.ServerRepo, giveawayRepo repos.GiveawayRepo, guild *discordgo.Guild) {
-	serverConfig, err := serverRepo.GetServerConfigForGuild(guild.ID)
+func CreateMissingGiveaways(ctx context.Context, s *discordgo.Session, serverRepo repos.ServerRepo, giveawayRepo repos.GiveawayRepo, guild *discordgo.Guild) {
+	serverConfig, err := serverRepo.GetServerConfigForGuild(ctx, guild.ID)
 	if err != nil {
 		log.Println("("+guild.ID+") createMissingGiveaways#ServerRepo.GetServerConfigForGuild", err)
 		return
@@ -128,9 +129,9 @@ func CreateMissingGiveaways(s *discordgo.Session, serverRepo repos.ServerRepo, g
 		log.Println("("+guild.ID+") createMissingGiveaways#Session.Channel", err)
 		return
 	}
-	giveaway, err := giveawayRepo.GetGiveawayForGuild(guild.ID)
+	giveaway, err := giveawayRepo.GetGiveawayForGuild(ctx, guild.ID)
 	if giveaway == nil && err == nil {
-		err := giveawayRepo.InsertGiveaway(guild.ID, guild.Name)
+		err := giveawayRepo.InsertGiveaway(ctx, guild.ID, guild.Name)
 		if err != nil {
 			log.Panicln("createMissingGiveaways#DbMap.Insert", err)
 			return

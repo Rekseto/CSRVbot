@@ -2,6 +2,7 @@ package listeners
 
 import (
 	"csrvbot/internal/repos"
+	"csrvbot/pkg"
 	"csrvbot/pkg/discord"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
@@ -25,6 +26,7 @@ func NewMessageReactionAddListener(giveawayHours string, userRepo *repos.UserRep
 }
 
 func (h MessageReactionAddListener) Handle(s *discordgo.Session, r *discordgo.MessageReactionAdd) {
+	ctx := pkg.CreateContext()
 	if r.UserID == s.State.User.ID {
 		return
 	}
@@ -47,19 +49,19 @@ func (h MessageReactionAddListener) Handle(s *discordgo.Session, r *discordgo.Me
 		return
 	}
 
-	isThxMessage, err := h.GiveawayRepo.IsThxMessage(r.MessageID)
+	isThxMessage, err := h.GiveawayRepo.IsThxMessage(ctx, r.MessageID)
 	if err != nil {
 		log.Println("("+r.GuildID+") "+"handleGiveawayReactions#h.GiveawayRepo.IsThxMessage", err)
 		return
 	}
-	isThxmeMessage, err := h.GiveawayRepo.IsThxmeMessage(r.MessageID)
+	isThxmeMessage, err := h.GiveawayRepo.IsThxmeMessage(ctx, r.MessageID)
 	if err != nil {
 		log.Println("("+r.GuildID+") "+"handleGiveawayReactions#h.GiveawayRepo.IsThxmeMessage", err)
 		return
 	}
 
 	if isThxMessage {
-		if !discord.HasAdminPermissions(s, h.ServerRepo, member, r.GuildID) {
+		if !discord.HasAdminPermissions(ctx, s, h.ServerRepo, member, r.GuildID) {
 			err = s.MessageReactionRemove(r.ChannelID, r.MessageID, r.Emoji.Name, r.UserID)
 			if err != nil {
 				log.Println("("+r.GuildID+") "+"handleGiveawayReactions#s.MessageReactionRemove", err)
@@ -67,7 +69,7 @@ func (h MessageReactionAddListener) Handle(s *discordgo.Session, r *discordgo.Me
 			return
 		}
 		// reactionists...
-		participant, err := h.GiveawayRepo.GetParticipant(r.MessageID)
+		participant, err := h.GiveawayRepo.GetParticipant(ctx, r.MessageID)
 		if err != nil {
 			log.Println("handleGiveawayReactions#GetParticipant", err)
 			return
@@ -75,14 +77,14 @@ func (h MessageReactionAddListener) Handle(s *discordgo.Session, r *discordgo.Me
 
 		switch r.Emoji.Name {
 		case "✅":
-			err := h.GiveawayRepo.UpdateParticipant(participant, r.UserID, member.User.Username, true)
+			err := h.GiveawayRepo.UpdateParticipant(ctx, participant, r.UserID, member.User.Username, true)
 			if err != nil {
 				log.Println("handleGiveawayReactions#UpdateParticipant", err)
 				return
 			}
 			log.Println(member.User.Username + "(" + member.User.ID + ") zaakceptował udział " + participant.UserName + "(" + participant.UserId + ") w giveawayu o ID " + fmt.Sprintf("%d", participant.GiveawayId))
 
-			participants, err := h.GiveawayRepo.GetParticipantNamesForGiveaway(participant.GiveawayId)
+			participants, err := h.GiveawayRepo.GetParticipantNamesForGiveaway(ctx, participant.GiveawayId)
 			if err != nil {
 				log.Println("("+r.GuildID+") Could not get participants", err)
 				return
@@ -95,18 +97,18 @@ func (h MessageReactionAddListener) Handle(s *discordgo.Session, r *discordgo.Me
 				log.Println("("+r.GuildID+") Could not update message", err)
 				return
 			}
-			discord.NotifyThxOnThxInfoChannel(s, h.ServerRepo, h.GiveawayRepo, r.GuildID, r.ChannelID, r.MessageID, participant.UserId, r.UserID, "confirm")
-			discord.CheckHelper(s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, r.GuildID, participant.UserId)
+			discord.NotifyThxOnThxInfoChannel(ctx, s, h.ServerRepo, h.GiveawayRepo, r.GuildID, r.ChannelID, r.MessageID, participant.UserId, r.UserID, "confirm")
+			discord.CheckHelper(ctx, s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, r.GuildID, participant.UserId)
 			break
 		case "⛔":
-			err := h.GiveawayRepo.UpdateParticipant(participant, r.UserID, member.User.Username, false)
+			err := h.GiveawayRepo.UpdateParticipant(ctx, participant, r.UserID, member.User.Username, false)
 			if err != nil {
 				log.Println("handleGiveawayReactions#UpdateParticipant", err)
 				return
 			}
 			log.Println(member.User.Username + "(" + member.User.ID + ") odrzucił udział " + participant.UserName + "(" + participant.UserId + ") w giveawayu o ID " + fmt.Sprintf("%d", participant.GiveawayId))
 
-			participants, err := h.GiveawayRepo.GetParticipantNamesForGiveaway(participant.GiveawayId)
+			participants, err := h.GiveawayRepo.GetParticipantNamesForGiveaway(ctx, participant.GiveawayId)
 			if err != nil {
 				log.Println("("+r.GuildID+") Could not get participants", err)
 				return
@@ -119,12 +121,12 @@ func (h MessageReactionAddListener) Handle(s *discordgo.Session, r *discordgo.Me
 				log.Println("("+r.GuildID+") Could not update message", err)
 				return
 			}
-			discord.NotifyThxOnThxInfoChannel(s, h.ServerRepo, h.GiveawayRepo, r.GuildID, r.ChannelID, r.MessageID, participant.UserId, r.UserID, "reject")
-			discord.CheckHelper(s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, r.GuildID, participant.UserId)
+			discord.NotifyThxOnThxInfoChannel(ctx, s, h.ServerRepo, h.GiveawayRepo, r.GuildID, r.ChannelID, r.MessageID, participant.UserId, r.UserID, "reject")
+			discord.CheckHelper(ctx, s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, r.GuildID, participant.UserId)
 			break
 		}
 	} else if isThxmeMessage {
-		candidate, err := h.GiveawayRepo.GetParticipantCandidate(r.MessageID)
+		candidate, err := h.GiveawayRepo.GetParticipantCandidate(ctx, r.MessageID)
 		if err != nil {
 			log.Println("handleGiveawayReactions#GetParticipant", err)
 			return
@@ -140,19 +142,19 @@ func (h MessageReactionAddListener) Handle(s *discordgo.Session, r *discordgo.Me
 		// reactionists...
 		switch r.Emoji.Name {
 		case "✅":
-			err := h.GiveawayRepo.UpdateParticipantCandidate(candidate, true)
+			err := h.GiveawayRepo.UpdateParticipantCandidate(ctx, candidate, true)
 			if err != nil {
 				log.Println("handleGiveawayReactions#UpdateParticipant", err)
 				return
 			}
 			log.Println(candidate.CandidateApproverName + "(" + candidate.CandidateApproverId + ") zaakceptował prosbe o thx uzytkownika " + candidate.CandidateName + "(" + candidate.CandidateId + ")")
 
-			giveaway, err := h.GiveawayRepo.GetGiveawayForGuild(r.GuildID)
+			giveaway, err := h.GiveawayRepo.GetGiveawayForGuild(ctx, r.GuildID)
 			if err != nil || giveaway == nil {
 				log.Println("("+r.GuildID+") Could not get giveaway", err)
 				return
 			}
-			participants, err := h.GiveawayRepo.GetParticipantNamesForGiveaway(giveaway.Id)
+			participants, err := h.GiveawayRepo.GetParticipantNamesForGiveaway(ctx, giveaway.Id)
 			if err != nil {
 				log.Println("("+r.GuildID+") Could not get participants", err)
 				return
@@ -179,18 +181,18 @@ func (h MessageReactionAddListener) Handle(s *discordgo.Session, r *discordgo.Me
 				return
 			}
 
-			err = h.GiveawayRepo.InsertParticipant(giveaway.Id, r.GuildID, guild.Name, candidate.CandidateId, candidate.CandidateName, r.ChannelID, r.MessageID)
+			err = h.GiveawayRepo.InsertParticipant(ctx, giveaway.Id, r.GuildID, guild.Name, candidate.CandidateId, candidate.CandidateName, r.ChannelID, r.MessageID)
 			if err != nil {
 				log.Println("("+r.GuildID+") Could not insert participant", err)
 				_, err = s.ChannelMessageSend(r.ChannelID, "Coś poszło nie tak przy dodawaniu podziękowania :(")
 				return
 			}
 			log.Println("(" + r.GuildID + ") " + member.User.Username + " has thanked " + candidate.CandidateName)
-			discord.NotifyThxOnThxInfoChannel(s, h.ServerRepo, h.GiveawayRepo, r.GuildID, r.ChannelID, r.MessageID, candidate.CandidateId, "", "wait")
+			discord.NotifyThxOnThxInfoChannel(ctx, s, h.ServerRepo, h.GiveawayRepo, r.GuildID, r.ChannelID, r.MessageID, candidate.CandidateId, "", "wait")
 
 			break
 		case "⛔":
-			err := h.GiveawayRepo.UpdateParticipantCandidate(candidate, false)
+			err := h.GiveawayRepo.UpdateParticipantCandidate(ctx, candidate, false)
 			if err != nil {
 				log.Println("handleGiveawayReactions#UpdateParticipant", err)
 				return

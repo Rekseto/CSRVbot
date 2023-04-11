@@ -2,6 +2,7 @@ package commands
 
 import (
 	"csrvbot/internal/repos"
+	"csrvbot/pkg"
 	"csrvbot/pkg/discord"
 	"github.com/bwmarrin/discordgo"
 	"log"
@@ -49,6 +50,7 @@ func (h ThxCommand) Register(s *discordgo.Session) {
 }
 
 func (h ThxCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	ctx := pkg.CreateContext()
 	guild, err := s.Guild(i.GuildID)
 	if err != nil {
 		log.Println("("+i.GuildID+") handleThxCommand#session.Guild", err)
@@ -64,7 +66,7 @@ func (h ThxCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate)
 		discord.RespondWithMessage(s, i, "Nie można dziękować botom!")
 		return
 	}
-	isUserBlacklisted, err := h.UserRepo.IsUserBlacklisted(i.GuildID, selectedUser.ID)
+	isUserBlacklisted, err := h.UserRepo.IsUserBlacklisted(ctx, i.GuildID, selectedUser.ID)
 	if err != nil {
 		log.Println("("+i.GuildID+") handleThxCommand#UserRepo.IsUserBlacklisted", err)
 		return
@@ -73,12 +75,12 @@ func (h ThxCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate)
 		discord.RespondWithMessage(s, i, "Ten użytkownik jest na czarnej liście i nie może brać udziału :(")
 		return
 	}
-	giveaway, err := h.GiveawayRepo.GetGiveawayForGuild(i.GuildID)
+	giveaway, err := h.GiveawayRepo.GetGiveawayForGuild(ctx, i.GuildID)
 	if err != nil || giveaway == nil {
 		log.Println("("+i.GuildID+") Could not get giveaway", err)
 		return
 	}
-	participants, err := h.GiveawayRepo.GetParticipantNamesForGiveaway(giveaway.Id)
+	participants, err := h.GiveawayRepo.GetParticipantNamesForGiveaway(ctx, giveaway.Id)
 	if err != nil {
 		log.Println("("+i.GuildID+") Could not get participants", err)
 		return
@@ -103,7 +105,7 @@ func (h ThxCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate)
 		return
 	}
 
-	err = h.GiveawayRepo.InsertParticipant(giveaway.Id, i.GuildID, guild.Name, selectedUser.ID, selectedUser.Username, i.ChannelID, response.ID)
+	err = h.GiveawayRepo.InsertParticipant(ctx, giveaway.Id, i.GuildID, guild.Name, selectedUser.ID, selectedUser.Username, i.ChannelID, response.ID)
 	if err != nil {
 		log.Println("("+i.GuildID+") Could not insert participant", err)
 		str := "Coś poszło nie tak przy dodawaniu podziękowania :("
@@ -113,7 +115,7 @@ func (h ThxCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate)
 		return
 	}
 	log.Println("(" + i.GuildID + ") " + author.Username + " has thanked " + selectedUser.Username)
-	discord.NotifyThxOnThxInfoChannel(s, h.ServerRepo, h.GiveawayRepo, i.GuildID, i.ChannelID, response.ID, selectedUser.ID, "", "wait")
+	discord.NotifyThxOnThxInfoChannel(ctx, s, h.ServerRepo, h.GiveawayRepo, i.GuildID, i.ChannelID, response.ID, selectedUser.ID, "", "wait")
 
 	for err = s.MessageReactionAdd(i.ChannelID, response.ID, "✅"); err != nil; err = s.MessageReactionAdd(i.ChannelID, response.ID, "✅") {
 	}

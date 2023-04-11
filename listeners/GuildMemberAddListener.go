@@ -1,7 +1,9 @@
 package listeners
 
 import (
+	"context"
 	"csrvbot/internal/repos"
+	"csrvbot/pkg"
 	"github.com/bwmarrin/discordgo"
 	"log"
 )
@@ -17,14 +19,15 @@ func NewGuildMemberAddListener(userRepo *repos.UserRepo) GuildMemberAddListener 
 }
 
 func (h GuildMemberAddListener) Handle(s *discordgo.Session, m *discordgo.GuildMemberAdd) {
+	ctx := pkg.CreateContext()
 	if m.GuildID == "" { //can it be even empty?
 		return
 	}
-	h.restoreMemberRoles(s, m.Member, m.GuildID)
+	h.restoreMemberRoles(ctx, s, m.Member, m.GuildID)
 }
 
-func (h GuildMemberAddListener) restoreMemberRoles(s *discordgo.Session, member *discordgo.Member, guildId string) {
-	memberRoles, err := h.UserRepo.GetRolesForMember(guildId, member.User.ID)
+func (h GuildMemberAddListener) restoreMemberRoles(ctx context.Context, s *discordgo.Session, member *discordgo.Member, guildId string) {
+	memberRoles, err := h.UserRepo.GetRolesForMember(ctx, guildId, member.User.ID)
 	for _, role := range memberRoles {
 		err = s.GuildMemberRoleAdd(guildId, member.User.ID, role.RoleId)
 		if err != nil {

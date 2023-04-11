@@ -2,6 +2,7 @@ package commands
 
 import (
 	"csrvbot/internal/repos"
+	"csrvbot/pkg"
 	"csrvbot/pkg/discord"
 	"github.com/bwmarrin/discordgo"
 	"log"
@@ -49,6 +50,7 @@ func (h ThxmeCommand) Register(s *discordgo.Session) {
 }
 
 func (h ThxmeCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	ctx := pkg.CreateContext()
 	guild, err := s.Guild(i.GuildID)
 	if err != nil {
 		log.Println("("+i.GuildID+") handleThxmeCommand#session.Guild", err)
@@ -64,7 +66,7 @@ func (h ThxmeCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreat
 		discord.RespondWithMessage(s, i, "Nie można prosić o podziękowanie bota!")
 		return
 	}
-	isUserBlacklisted, err := h.UserRepo.IsUserBlacklisted(i.GuildID, selectedUser.ID)
+	isUserBlacklisted, err := h.UserRepo.IsUserBlacklisted(ctx, i.GuildID, selectedUser.ID)
 	if err != nil {
 		log.Println("("+i.GuildID+") handleThxmeCommand#UserRepo.IsUserBlacklisted", err)
 		return
@@ -82,7 +84,7 @@ func (h ThxmeCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreat
 		return
 	}
 
-	err = h.GiveawayRepo.InsertParticipantCandidate(i.GuildID, guild.Name, author.ID, author.Username, selectedUser.ID, selectedUser.Username, i.ChannelID, response.ID)
+	err = h.GiveawayRepo.InsertParticipantCandidate(ctx, i.GuildID, guild.Name, author.ID, author.Username, selectedUser.ID, selectedUser.Username, i.ChannelID, response.ID)
 	if err != nil {
 		log.Println("("+i.GuildID+") Could not insert participant candidate", err)
 		str := "Coś poszło nie tak przy dodawaniu kandydata do podziękowania :("

@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"context"
 	"csrvbot/internal/repos"
 	"errors"
 	"github.com/bwmarrin/discordgo"
@@ -71,11 +72,11 @@ func HasRoleById(member *discordgo.Member, roleId string) bool {
 	return false
 }
 
-func HasAdminPermissions(session *discordgo.Session, serverRepo repos.ServerRepo, member *discordgo.Member, guildId string) bool {
+func HasAdminPermissions(ctx context.Context, session *discordgo.Session, serverRepo repos.ServerRepo, member *discordgo.Member, guildId string) bool {
 	if HasPermission(session, member, guildId, 8) {
 		return true
 	}
-	adminRole, err := serverRepo.GetAdminRoleForGuild(guildId)
+	adminRole, err := serverRepo.GetAdminRoleForGuild(ctx, guildId)
 	if err != nil {
 		log.Println("("+guildId+") "+"HasAdminPermissions#serverRepo.GetAdminRole", err)
 		return false

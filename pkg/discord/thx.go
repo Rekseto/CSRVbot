@@ -1,16 +1,17 @@
 package discord
 
 import (
+	"context"
 	"csrvbot/internal/repos"
 	"database/sql"
 	"github.com/bwmarrin/discordgo"
 	"log"
 )
 
-func NotifyThxOnThxInfoChannel(s *discordgo.Session, serverRepo repos.ServerRepo, giveawayRepo repos.GiveawayRepo, guildId, channelId, messageId, participantId, confirmerId, state string) {
+func NotifyThxOnThxInfoChannel(ctx context.Context, s *discordgo.Session, serverRepo repos.ServerRepo, giveawayRepo repos.GiveawayRepo, guildId, channelId, messageId, participantId, confirmerId, state string) {
 	embed := ConstructThxNotificationEmbed(guildId, channelId, messageId, participantId, confirmerId, state)
 
-	serverConfig, err := serverRepo.GetServerConfigForGuild(guildId)
+	serverConfig, err := serverRepo.GetServerConfigForGuild(ctx, guildId)
 	if err != nil {
 		log.Println("("+guildId+") "+"NotifyThxOnThxInfoChannel#serverRepo.GetServerConfigForGuild", err)
 		return
@@ -20,7 +21,7 @@ func NotifyThxOnThxInfoChannel(s *discordgo.Session, serverRepo repos.ServerRepo
 		return
 	}
 
-	thxNotification, err := giveawayRepo.GetThxNotification(messageId)
+	thxNotification, err := giveawayRepo.GetThxNotification(ctx, messageId)
 	if err == sql.ErrNoRows {
 		message, err := s.ChannelMessageSendEmbed(serverConfig.ThxInfoChannel, embed)
 		if err != nil {
@@ -28,7 +29,7 @@ func NotifyThxOnThxInfoChannel(s *discordgo.Session, serverRepo repos.ServerRepo
 			return
 		}
 
-		err = giveawayRepo.InsertThxNotification(messageId, message.ID)
+		err = giveawayRepo.InsertThxNotification(ctx, messageId, message.ID)
 		if err != nil {
 			log.Println("("+guildId+") "+"notifyThxOnThxInfoChannel#DbMap.Insert Unable to insert to database!", err)
 			return

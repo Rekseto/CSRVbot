@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"context"
 	"csrvbot/internal/repos"
 	"github.com/bwmarrin/discordgo"
 	"log"
@@ -24,8 +25,8 @@ func GetAllMembers(session *discordgo.Session, guildId string) []*discordgo.Memb
 	return allMembers
 }
 
-func CheckHelpers(session *discordgo.Session, serverRepo repos.ServerRepo, giveawayRepo repos.GiveawayRepo, userRepo repos.UserRepo, guildId string) {
-	serverConfig, err := serverRepo.GetServerConfigForGuild(guildId)
+func CheckHelpers(ctx context.Context, session *discordgo.Session, serverRepo repos.ServerRepo, giveawayRepo repos.GiveawayRepo, userRepo repos.UserRepo, guildId string) {
+	serverConfig, err := serverRepo.GetServerConfigForGuild(ctx, guildId)
 	if err != nil {
 		log.Println("("+guildId+") checkHelpers#ServerRepo.GetServerConfigForGuild", err)
 		return
@@ -39,7 +40,7 @@ func CheckHelpers(session *discordgo.Session, serverRepo repos.ServerRepo, givea
 
 	members := GetAllMembers(session, guildId)
 
-	helpers, err := giveawayRepo.GetParticipantsWithThxAmount(guildId, serverConfig.HelperRoleThxesNeeded)
+	helpers, err := giveawayRepo.GetParticipantsWithThxAmount(ctx, guildId, serverConfig.HelperRoleThxesNeeded)
 	if err != nil {
 		log.Println("("+guildId+") checkHelpers#GiveawayRepo.GetParticipantsWithThxAmount", err)
 		return
@@ -54,7 +55,7 @@ func CheckHelpers(session *discordgo.Session, serverRepo repos.ServerRepo, givea
 	for _, member := range members {
 		shouldHaveRole := false
 		for _, helper := range helpers {
-			isHelperBlacklisted, err := userRepo.IsUserHelperBlacklisted(member.User.ID, guildId)
+			isHelperBlacklisted, err := userRepo.IsUserHelperBlacklisted(ctx, member.User.ID, guildId)
 			if err != nil {
 				log.Println("("+guildId+") checkHelpers#UserRepo.IsUserHelperBlacklisted", err)
 				continue
@@ -91,8 +92,8 @@ func CheckHelpers(session *discordgo.Session, serverRepo repos.ServerRepo, givea
 	}
 }
 
-func CheckHelper(session *discordgo.Session, serverRepo repos.ServerRepo, giveawayRepo repos.GiveawayRepo, userRepo repos.UserRepo, guildId, memberId string) {
-	serverConfig, err := serverRepo.GetServerConfigForGuild(guildId)
+func CheckHelper(ctx context.Context, session *discordgo.Session, serverRepo repos.ServerRepo, giveawayRepo repos.GiveawayRepo, userRepo repos.UserRepo, guildId, memberId string) {
+	serverConfig, err := serverRepo.GetServerConfigForGuild(ctx, guildId)
 	if err != nil {
 		log.Println("("+guildId+") checkHelper#ServerRepo.GetServerConfigForGuild", err)
 		return
@@ -116,12 +117,12 @@ func CheckHelper(session *discordgo.Session, serverRepo repos.ServerRepo, giveaw
 		return
 	}
 
-	hasHelperAmount, err := giveawayRepo.HasThxAmount(guildId, memberId, serverConfig.HelperRoleThxesNeeded)
+	hasHelperAmount, err := giveawayRepo.HasThxAmount(ctx, guildId, memberId, serverConfig.HelperRoleThxesNeeded)
 	if err != nil {
 		log.Println("("+guildId+") checkHelper#GiveawayRepo.HasThxAmount", err)
 		return
 	}
-	isHelperBlacklisted, err := userRepo.IsUserHelperBlacklisted(memberId, guildId)
+	isHelperBlacklisted, err := userRepo.IsUserHelperBlacklisted(ctx, memberId, guildId)
 	if err != nil {
 		log.Println("("+guildId+") checkHelper#UserRepo.IsUserHelperBlacklisted", err)
 		return

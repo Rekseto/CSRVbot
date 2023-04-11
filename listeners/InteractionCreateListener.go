@@ -1,8 +1,10 @@
 package listeners
 
 import (
+	"context"
 	"csrvbot/commands"
 	"csrvbot/internal/repos"
+	"csrvbot/pkg"
 	"csrvbot/pkg/discord"
 	"github.com/bwmarrin/discordgo"
 	"log"
@@ -31,13 +33,14 @@ func NewInteractionCreateListener(giveawayCommand commands.GiveawayCommand, thxC
 }
 
 func (h InteractionCreateListener) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	ctx := pkg.CreateContext()
 	switch i.Type {
 	case discordgo.InteractionApplicationCommand:
 		h.handleApplicationCommands(s, i)
 	case discordgo.InteractionApplicationCommandAutocomplete:
 		h.handleApplicationCommandsAutocomplete(s, i)
 	case discordgo.InteractionMessageComponent:
-		h.handleMessageComponents(s, i)
+		h.handleMessageComponents(ctx, s, i)
 	}
 }
 
@@ -65,10 +68,10 @@ func (h InteractionCreateListener) handleApplicationCommandsAutocomplete(s *disc
 	}
 }
 
-func (h InteractionCreateListener) handleMessageComponents(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (h InteractionCreateListener) handleMessageComponents(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	switch i.MessageComponentData().CustomID {
 	case "winnercode":
-		hasWon, err := h.GiveawayRepo.HasWonGiveawayByMessageId(i.Message.ID, i.Member.User.ID)
+		hasWon, err := h.GiveawayRepo.HasWonGiveawayByMessageId(ctx, i.Message.ID, i.Member.User.ID)
 		if err != nil {
 			log.Println("("+i.GuildID+") handleMessageComponents#GiveawayRepo.HasWonGiveawayByMessageId", err)
 			return
@@ -87,7 +90,7 @@ func (h InteractionCreateListener) handleMessageComponents(s *discordgo.Session,
 			return
 		}
 
-		code, err := h.GiveawayRepo.GetCodeForInfoMessage(i.Message.ID)
+		code, err := h.GiveawayRepo.GetCodeForInfoMessage(ctx, i.Message.ID)
 		if err != nil {
 			log.Println("("+i.GuildID+") handleMessageComponents#session.InteractionRespond", err)
 			return

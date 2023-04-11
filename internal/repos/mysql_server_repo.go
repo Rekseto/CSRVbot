@@ -1,6 +1,7 @@
 package repos
 
 import (
+	"context"
 	"github.com/go-gorp/gorp"
 )
 
@@ -24,79 +25,79 @@ type ServerConfig struct {
 	HelperRoleThxesNeeded int    `db:"helper_role_thxes_needed"`
 }
 
-func (repo *ServerRepo) GetServerConfigForGuild(guildId string) (*ServerConfig, error) {
+func (repo *ServerRepo) GetServerConfigForGuild(ctx context.Context, guildId string) (*ServerConfig, error) {
 	var serverConfig ServerConfig
-	err := repo.mysql.SelectOne(&serverConfig, "SELECT * FROM server_configs WHERE guild_id = ?", guildId)
+	err := repo.mysql.WithContext(ctx).SelectOne(&serverConfig, "SELECT * FROM server_configs WHERE guild_id = ?", guildId)
 	if err != nil {
 		return nil, err
 	}
 	return &serverConfig, nil
 }
 
-func (repo *ServerRepo) InsertServerConfig(guildId, giveawayChannel string) error {
+func (repo *ServerRepo) InsertServerConfig(ctx context.Context, guildId, giveawayChannel string) error {
 	var serverConfig ServerConfig
 	serverConfig.GuildId = guildId
 	serverConfig.MainChannel = giveawayChannel
 	serverConfig.AdminRole = "CraftserveBotAdmin"
 	serverConfig.HelperRoleName = ""
 	serverConfig.HelperRoleThxesNeeded = 0
-	err := repo.mysql.Insert(&serverConfig)
+	err := repo.mysql.WithContext(ctx).Insert(&serverConfig)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repo *ServerRepo) GetAdminRoleForGuild(guildId string) (string, error) {
-	serverConfig, err := repo.GetServerConfigForGuild(guildId)
+func (repo *ServerRepo) GetAdminRoleForGuild(ctx context.Context, guildId string) (string, error) {
+	serverConfig, err := repo.GetServerConfigForGuild(ctx, guildId)
 	if err != nil {
 		return "", err
 	}
 	return serverConfig.AdminRole, nil
 }
 
-func (repo *ServerRepo) GetMainChannelForGuild(guildId string) (string, error) {
-	str, err := repo.mysql.SelectStr("SELECT main_channel FROM server_configs WHERE guild_id = ?", guildId)
+func (repo *ServerRepo) GetMainChannelForGuild(ctx context.Context, guildId string) (string, error) {
+	str, err := repo.mysql.WithContext(ctx).SelectStr("SELECT main_channel FROM server_configs WHERE guild_id = ?", guildId)
 	if err != nil {
 		return "", err
 	}
 	return str, nil
 }
 
-func (repo *ServerRepo) SetMainChannelForGuild(guildId, channelId string) error {
-	_, err := repo.mysql.Exec("UPDATE server_configs SET main_channel = ? WHERE guild_id = ?", channelId, guildId)
+func (repo *ServerRepo) SetMainChannelForGuild(ctx context.Context, guildId, channelId string) error {
+	_, err := repo.mysql.WithContext(ctx).Exec("UPDATE server_configs SET main_channel = ? WHERE guild_id = ?", channelId, guildId)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repo *ServerRepo) SetThxInfoChannelForGuild(guildId, channelId string) error {
-	_, err := repo.mysql.Exec("UPDATE server_configs SET thx_info_channel = ? WHERE guild_id = ?", channelId, guildId)
+func (repo *ServerRepo) SetThxInfoChannelForGuild(ctx context.Context, guildId, channelId string) error {
+	_, err := repo.mysql.WithContext(ctx).Exec("UPDATE server_configs SET thx_info_channel = ? WHERE guild_id = ?", channelId, guildId)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repo *ServerRepo) SetAdminRoleForGuild(guildId, roleName string) error {
-	_, err := repo.mysql.Exec("UPDATE server_configs SET admin_role = ? WHERE guild_id = ?", roleName, guildId)
+func (repo *ServerRepo) SetAdminRoleForGuild(ctx context.Context, guildId, roleName string) error {
+	_, err := repo.mysql.WithContext(ctx).Exec("UPDATE server_configs SET admin_role = ? WHERE guild_id = ?", roleName, guildId)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repo *ServerRepo) SetHelperRoleForGuild(guildId, roleName string) error {
-	_, err := repo.mysql.Exec("UPDATE server_configs SET helper_role_name = ? WHERE guild_id = ?", roleName, guildId)
+func (repo *ServerRepo) SetHelperRoleForGuild(ctx context.Context, guildId, roleName string) error {
+	_, err := repo.mysql.WithContext(ctx).Exec("UPDATE server_configs SET helper_role_name = ? WHERE guild_id = ?", roleName, guildId)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repo *ServerRepo) SetHelperThxesNeededForGuild(guildId string, thxesNeeded uint64) error {
-	_, err := repo.mysql.Exec("UPDATE server_configs SET helper_role_thxes_needed = ? WHERE guild_id = ?", thxesNeeded, guildId)
+func (repo *ServerRepo) SetHelperThxesNeededForGuild(ctx context.Context, guildId string, thxesNeeded uint64) error {
+	_, err := repo.mysql.WithContext(ctx).Exec("UPDATE server_configs SET helper_role_thxes_needed = ? WHERE guild_id = ?", thxesNeeded, guildId)
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,7 @@ package commands
 
 import (
 	"csrvbot/internal/repos"
+	"csrvbot/pkg"
 	"csrvbot/pkg/discord"
 	"github.com/bwmarrin/discordgo"
 	"log"
@@ -37,7 +38,8 @@ func (h GiveawayCommand) Register(s *discordgo.Session) {
 }
 
 func (h GiveawayCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	giveaway, err := h.GiveawayRepo.GetGiveawayForGuild(i.GuildID)
+	ctx := pkg.CreateContext()
+	giveaway, err := h.GiveawayRepo.GetGiveawayForGuild(ctx, i.GuildID)
 	if err != nil {
 		log.Println("("+i.GuildID+") Could not get giveaway", err)
 		return
@@ -46,7 +48,7 @@ func (h GiveawayCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCr
 		log.Println("(" + i.GuildID + ") Could not get giveaway")
 		return
 	}
-	participants, err := h.GiveawayRepo.GetParticipantNamesForGiveaway(giveaway.Id)
+	participants, err := h.GiveawayRepo.GetParticipantNamesForGiveaway(ctx, giveaway.Id)
 	if err != nil {
 		log.Println("("+i.GuildID+") Could not get participants", err)
 		return

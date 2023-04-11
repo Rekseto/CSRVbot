@@ -1,8 +1,10 @@
 package commands
 
 import (
+	"context"
 	"csrvbot/internal/repos"
 	"csrvbot/internal/services"
+	"csrvbot/pkg"
 	"csrvbot/pkg/discord"
 	"github.com/bwmarrin/discordgo"
 	"log"
@@ -197,50 +199,51 @@ func (h CsrvbotCommand) Register(s *discordgo.Session) {
 }
 
 func (h CsrvbotCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	ctx := pkg.CreateContext()
 	member, err := s.GuildMember(i.GuildID, i.Member.User.ID)
 	if err != nil {
 		log.Println("("+i.GuildID+") "+"handleGiveawayReactions#s.GuildMember", err)
 		return
 	}
-	if !discord.HasAdminPermissions(s, h.ServerRepo, member, i.GuildID) {
+	if !discord.HasAdminPermissions(ctx, s, h.ServerRepo, member, i.GuildID) {
 		discord.RespondWithMessage(s, i, "Nie masz uprawnień do tej komendy")
 		return
 	}
 
 	switch i.ApplicationCommandData().Options[0].Name {
 	case "settings":
-		h.handleSettings(s, i)
+		h.handleSettings(ctx, s, i)
 	case "delete":
-		h.handleDelete(s, i)
+		h.handleDelete(ctx, s, i)
 	case "start":
-		h.handleStart(s, i)
+		h.handleStart(ctx, s, i)
 	case "blacklist":
-		h.handleBlacklist(s, i)
+		h.handleBlacklist(ctx, s, i)
 	case "unblacklist":
-		h.handleUnblacklist(s, i)
+		h.handleUnblacklist(ctx, s, i)
 	case "helperblacklist":
-		h.handleHelperBlacklist(s, i)
+		h.handleHelperBlacklist(ctx, s, i)
 	case "helperunblacklist":
-		h.handleHelperUnblacklist(s, i)
+		h.handleHelperUnblacklist(ctx, s, i)
 	}
 }
 
-func (h CsrvbotCommand) handleSettings(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (h CsrvbotCommand) handleSettings(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	switch i.ApplicationCommandData().Options[0].Options[0].Name {
 	case "giveawaychannel":
-		h.handleGiveawayChannelSet(s, i)
+		h.handleGiveawayChannelSet(ctx, s, i)
 	case "thxinfochannel":
-		h.handleThxInfoChannelSet(s, i)
+		h.handleThxInfoChannelSet(ctx, s, i)
 	case "adminrole":
-		h.handleAdminRoleSet(s, i)
+		h.handleAdminRoleSet(ctx, s, i)
 	case "helperrole":
-		h.handleHelperRoleSet(s, i)
+		h.handleHelperRoleSet(ctx, s, i)
 	case "helperthxamount":
-		h.handleHelperThxAmountSet(s, i)
+		h.handleHelperThxAmountSet(ctx, s, i)
 	}
 }
 
-func (h CsrvbotCommand) handleStart(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (h CsrvbotCommand) handleStart(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	guild, err := s.Guild(i.GuildID)
 	if err != nil {
 		log.Println("handleStart s.Guild(" + i.GuildID + ")")
@@ -250,31 +253,31 @@ func (h CsrvbotCommand) handleStart(s *discordgo.Session, i *discordgo.Interacti
 		}
 	}
 
-	discord.FinishGiveaway(s, h.ServerRepo, h.GiveawayRepo, h.CsrvClient, guild.ID)
+	discord.FinishGiveaway(ctx, s, h.ServerRepo, h.GiveawayRepo, h.CsrvClient, guild.ID)
 	discord.RespondWithMessage(s, i, "Podjęto próbę rozstrzygnięcia giveawayu")
 
-	discord.CreateMissingGiveaways(s, h.ServerRepo, h.GiveawayRepo, guild)
+	discord.CreateMissingGiveaways(ctx, s, h.ServerRepo, h.GiveawayRepo, guild)
 }
 
-func (h CsrvbotCommand) handleDelete(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	giveaway, err := h.GiveawayRepo.GetGiveawayForGuild(i.GuildID)
+func (h CsrvbotCommand) handleDelete(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
+	giveaway, err := h.GiveawayRepo.GetGiveawayForGuild(ctx, i.GuildID)
 	if err != nil {
 		log.Println("handleDelete h.GiveawayRepo.GetGiveawayForGuild(" + i.GuildID + ")")
 		return
 	}
-	participants, err := h.GiveawayRepo.GetParticipantsForGiveaway(giveaway.Id)
+	participants, err := h.GiveawayRepo.GetParticipantsForGiveaway(ctx, giveaway.Id)
 	if err != nil {
 		log.Println("handleDelete h.GiveawayRepo.GetParticipantsForGiveaway", err)
 		return
 	}
 	selectedUser := i.ApplicationCommandData().Options[0].Options[0].UserValue(s)
 	discord.RespondWithMessage(s, i, "Podjęto próbę usunięcia użytkownika z giveawayu")
-	err = h.GiveawayRepo.RemoveParticipants(giveaway.Id, selectedUser.ID)
+	err = h.GiveawayRepo.RemoveParticipants(ctx, giveaway.Id, selectedUser.ID)
 	if err != nil {
 		log.Println("handleDelete h.GiveawayRepo.RemoveParticipants", err)
 		return
 	}
-	participantNames, err := h.GiveawayRepo.GetParticipantNamesForGiveaway(giveaway.Id)
+	participantNames, err := h.GiveawayRepo.GetParticipantNamesForGiveaway(ctx, giveaway.Id)
 	if err != nil {
 		log.Println("handleDelete h.GiveawayRepo.GetParticipantNamesForGiveaway", err)
 		return
@@ -302,13 +305,13 @@ func (h CsrvbotCommand) handleDelete(s *discordgo.Session, i *discordgo.Interact
 	}
 }
 
-func (h CsrvbotCommand) handleBlacklist(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (h CsrvbotCommand) handleBlacklist(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	selectedUser := i.ApplicationCommandData().Options[0].Options[0].UserValue(s)
 	if selectedUser.Bot {
 		discord.RespondWithMessage(s, i, "Nie możesz dodać bota do blacklisty")
 		return
 	}
-	isUserBlacklisted, err := h.UserRepo.IsUserBlacklisted(selectedUser.ID, i.GuildID)
+	isUserBlacklisted, err := h.UserRepo.IsUserBlacklisted(ctx, selectedUser.ID, i.GuildID)
 	if err != nil {
 		log.Println("handleBlacklist h.UserRepo.IsUserBlacklisted", err)
 		return
@@ -318,7 +321,7 @@ func (h CsrvbotCommand) handleBlacklist(s *discordgo.Session, i *discordgo.Inter
 		return
 	}
 
-	err = h.UserRepo.AddBlacklistForUser(selectedUser.ID, i.GuildID, i.Member.User.ID)
+	err = h.UserRepo.AddBlacklistForUser(ctx, selectedUser.ID, i.GuildID, i.Member.User.ID)
 	if err != nil {
 		log.Println("handleBlacklist h.UserRepo.AddBlacklistForUser", err)
 		discord.RespondWithMessage(s, i, "Nie udało się dodać użytkownika do blacklisty")
@@ -328,10 +331,10 @@ func (h CsrvbotCommand) handleBlacklist(s *discordgo.Session, i *discordgo.Inter
 	discord.RespondWithMessage(s, i, "Dodano użytkownika do blacklisty")
 }
 
-func (h CsrvbotCommand) handleUnblacklist(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (h CsrvbotCommand) handleUnblacklist(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	selectedUser := i.ApplicationCommandData().Options[0].Options[0].UserValue(s)
 
-	isUserBlacklisted, err := h.UserRepo.IsUserBlacklisted(selectedUser.ID, i.GuildID)
+	isUserBlacklisted, err := h.UserRepo.IsUserBlacklisted(ctx, selectedUser.ID, i.GuildID)
 	if err != nil {
 		log.Println("handleUnblacklist h.UserRepo.IsUserBlacklisted", err)
 		return
@@ -340,7 +343,7 @@ func (h CsrvbotCommand) handleUnblacklist(s *discordgo.Session, i *discordgo.Int
 		discord.RespondWithMessage(s, i, "Użytkownik nie jest na blackliście")
 		return
 	}
-	err = h.UserRepo.RemoveBlacklistForUser(selectedUser.ID, i.GuildID)
+	err = h.UserRepo.RemoveBlacklistForUser(ctx, selectedUser.ID, i.GuildID)
 	if err != nil {
 		log.Println("handleUnblacklist h.UserRepo.RemoveBlacklistForUser", err)
 		discord.RespondWithMessage(s, i, "Nie udało się usunąć użytkownika z blacklisty")
@@ -350,13 +353,13 @@ func (h CsrvbotCommand) handleUnblacklist(s *discordgo.Session, i *discordgo.Int
 	discord.RespondWithMessage(s, i, "Usunięto użytkownika z blacklisty")
 }
 
-func (h CsrvbotCommand) handleHelperBlacklist(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (h CsrvbotCommand) handleHelperBlacklist(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	selectedUser := i.ApplicationCommandData().Options[0].Options[0].UserValue(s)
 	if selectedUser.Bot {
 		discord.RespondWithMessage(s, i, "Nie możesz dodać bota do helper-blacklisty")
 		return
 	}
-	isUserHelperBlacklisted, err := h.UserRepo.IsUserHelperBlacklisted(selectedUser.ID, i.GuildID)
+	isUserHelperBlacklisted, err := h.UserRepo.IsUserHelperBlacklisted(ctx, selectedUser.ID, i.GuildID)
 	if err != nil {
 		log.Println("handleHelperBlacklist h.UserRepo.IsUserHelperBlacklisted", err)
 		return
@@ -366,7 +369,7 @@ func (h CsrvbotCommand) handleHelperBlacklist(s *discordgo.Session, i *discordgo
 		return
 	}
 
-	err = h.UserRepo.AddHelperBlacklistForUser(selectedUser.ID, i.GuildID, i.Member.User.ID)
+	err = h.UserRepo.AddHelperBlacklistForUser(ctx, selectedUser.ID, i.GuildID, i.Member.User.ID)
 	if err != nil {
 		log.Println("handleHelperBlacklist h.UserRepo.AddHelperBlacklistForUser", err)
 		discord.RespondWithMessage(s, i, "Nie udało się dodać użytkownika do helper-blacklisty")
@@ -376,10 +379,10 @@ func (h CsrvbotCommand) handleHelperBlacklist(s *discordgo.Session, i *discordgo
 	discord.RespondWithMessage(s, i, "Użytkownik został zablokowany z możliwości zostania pomocnym")
 }
 
-func (h CsrvbotCommand) handleHelperUnblacklist(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (h CsrvbotCommand) handleHelperUnblacklist(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	selectedUser := i.ApplicationCommandData().Options[0].Options[0].UserValue(s)
 
-	isUserHelperBlacklisted, err := h.UserRepo.IsUserHelperBlacklisted(selectedUser.ID, i.GuildID)
+	isUserHelperBlacklisted, err := h.UserRepo.IsUserHelperBlacklisted(ctx, selectedUser.ID, i.GuildID)
 	if err != nil {
 		log.Println("handleHelperUnblacklist h.UserRepo.IsUserHelperBlacklisted", err)
 		return
@@ -388,7 +391,7 @@ func (h CsrvbotCommand) handleHelperUnblacklist(s *discordgo.Session, i *discord
 		discord.RespondWithMessage(s, i, "Użytkownik nie jest na helper-blackliście")
 		return
 	}
-	err = h.UserRepo.RemoveHelperBlacklistForUser(selectedUser.ID, i.GuildID)
+	err = h.UserRepo.RemoveHelperBlacklistForUser(ctx, selectedUser.ID, i.GuildID)
 	if err != nil {
 		log.Println("handleHelperUnblacklist h.UserRepo.RemoveHelperBlacklistForUser", err)
 		discord.RespondWithMessage(s, i, "Nie udało się usunąć użytkownika z helper-blacklisty")
@@ -398,7 +401,7 @@ func (h CsrvbotCommand) handleHelperUnblacklist(s *discordgo.Session, i *discord
 	discord.RespondWithMessage(s, i, "Użytkownik został usunięty z helper-blacklisty")
 }
 
-func (h CsrvbotCommand) handleGiveawayChannelSet(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (h CsrvbotCommand) handleGiveawayChannelSet(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	channelId := i.ApplicationCommandData().Options[0].Options[0].Options[0].ChannelValue(s).ID
 	channel, err := s.Channel(channelId)
 	if err != nil {
@@ -406,7 +409,7 @@ func (h CsrvbotCommand) handleGiveawayChannelSet(s *discordgo.Session, i *discor
 		discord.RespondWithMessage(s, i, "Nie udało się ustawić kanału")
 		return
 	}
-	err = h.ServerRepo.SetMainChannelForGuild(i.GuildID, channelId)
+	err = h.ServerRepo.SetMainChannelForGuild(ctx, i.GuildID, channelId)
 	if err != nil {
 		log.Println("handleGiveawayChannelSet h.ServerRepo.SetMainChannelForGuild", err)
 		discord.RespondWithMessage(s, i, "Nie udało się ustawić kanału")
@@ -419,10 +422,10 @@ func (h CsrvbotCommand) handleGiveawayChannelSet(s *discordgo.Session, i *discor
 		log.Println("handleGiveawayChannelSet s.Guild", err)
 		return
 	}
-	discord.CreateMissingGiveaways(s, h.ServerRepo, h.GiveawayRepo, guild)
+	discord.CreateMissingGiveaways(ctx, s, h.ServerRepo, h.GiveawayRepo, guild)
 }
 
-func (h CsrvbotCommand) handleThxInfoChannelSet(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (h CsrvbotCommand) handleThxInfoChannelSet(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	channelId := i.ApplicationCommandData().Options[0].Options[0].Options[0].ChannelValue(s).ID
 	channel, err := s.Channel(channelId)
 	if err != nil {
@@ -430,7 +433,7 @@ func (h CsrvbotCommand) handleThxInfoChannelSet(s *discordgo.Session, i *discord
 		discord.RespondWithMessage(s, i, "Nie udało się ustawić kanału")
 		return
 	}
-	err = h.ServerRepo.SetThxInfoChannelForGuild(i.GuildID, channelId)
+	err = h.ServerRepo.SetThxInfoChannelForGuild(ctx, i.GuildID, channelId)
 	if err != nil {
 		log.Println("handleThxInfoChannelSet h.ServerRepo.SetThxInfoChannelForGuild", err)
 		discord.RespondWithMessage(s, i, "Nie udało się ustawić kanału")
@@ -440,7 +443,7 @@ func (h CsrvbotCommand) handleThxInfoChannelSet(s *discordgo.Session, i *discord
 	discord.RespondWithMessage(s, i, "Ustawiono kanał do powiadomień o thx na "+channel.Mention())
 }
 
-func (h CsrvbotCommand) handleAdminRoleSet(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (h CsrvbotCommand) handleAdminRoleSet(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	roleId := i.ApplicationCommandData().Options[0].Options[0].Options[0].RoleValue(s, i.GuildID).ID
 	role, err := s.State.Role(i.GuildID, roleId)
 	if err != nil {
@@ -448,7 +451,7 @@ func (h CsrvbotCommand) handleAdminRoleSet(s *discordgo.Session, i *discordgo.In
 		discord.RespondWithMessage(s, i, "Nie udało się ustawić roli")
 		return
 	}
-	err = h.ServerRepo.SetAdminRoleForGuild(i.GuildID, role.Name)
+	err = h.ServerRepo.SetAdminRoleForGuild(ctx, i.GuildID, role.Name)
 	if err != nil {
 		log.Println("handleAdminRoleSet h.ServerRepo.SetAdminRoleForGuild", err)
 		discord.RespondWithMessage(s, i, "Nie udało się ustawić roli")
@@ -458,7 +461,7 @@ func (h CsrvbotCommand) handleAdminRoleSet(s *discordgo.Session, i *discordgo.In
 	discord.RespondWithMessage(s, i, "Ustawiono rolę admina na "+role.Name)
 }
 
-func (h CsrvbotCommand) handleHelperRoleSet(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (h CsrvbotCommand) handleHelperRoleSet(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	roleId := i.ApplicationCommandData().Options[0].Options[0].Options[0].RoleValue(s, i.GuildID).ID
 	role, err := s.State.Role(i.GuildID, roleId)
 	if err != nil {
@@ -466,7 +469,7 @@ func (h CsrvbotCommand) handleHelperRoleSet(s *discordgo.Session, i *discordgo.I
 		discord.RespondWithMessage(s, i, "Nie udało się ustawić roli")
 		return
 	}
-	err = h.ServerRepo.SetHelperRoleForGuild(i.GuildID, role.Name)
+	err = h.ServerRepo.SetHelperRoleForGuild(ctx, i.GuildID, role.Name)
 	if err != nil {
 		log.Println("handleHelperRoleSet h.ServerRepo.SetHelperRoleForGuild", err)
 		discord.RespondWithMessage(s, i, "Nie udało się ustawić roli")
@@ -476,9 +479,9 @@ func (h CsrvbotCommand) handleHelperRoleSet(s *discordgo.Session, i *discordgo.I
 	discord.RespondWithMessage(s, i, "Ustawiono rolę helpera na "+role.Name)
 }
 
-func (h CsrvbotCommand) handleHelperThxAmountSet(s *discordgo.Session, i *discordgo.InteractionCreate) {
+func (h CsrvbotCommand) handleHelperThxAmountSet(ctx context.Context, s *discordgo.Session, i *discordgo.InteractionCreate) {
 	amount := i.ApplicationCommandData().Options[0].Options[0].Options[0].UintValue()
-	err := h.ServerRepo.SetHelperThxesNeededForGuild(i.GuildID, amount)
+	err := h.ServerRepo.SetHelperThxesNeededForGuild(ctx, i.GuildID, amount)
 	if err != nil {
 		log.Println("handleHelperThxAmountSet h.ServerRepo.SetHelperThxAmountForGuild", err)
 		discord.RespondWithMessage(s, i, "Nie udało się ustawić ilości thx")
@@ -486,5 +489,5 @@ func (h CsrvbotCommand) handleHelperThxAmountSet(s *discordgo.Session, i *discor
 	}
 	log.Println("(" + i.GuildID + ") " + i.Member.User.Username + " set helper thx amount to " + strconv.FormatUint(amount, 10))
 	discord.RespondWithMessage(s, i, "Ustawiono ilość thx potrzebną do uzyskania rangi helpera na "+strconv.FormatUint(amount, 10))
-	discord.CheckHelpers(s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, i.GuildID)
+	discord.CheckHelpers(ctx, s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, i.GuildID)
 }

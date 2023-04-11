@@ -2,6 +2,7 @@ package commands
 
 import (
 	"csrvbot/internal/repos"
+	"csrvbot/pkg"
 	"csrvbot/pkg/discord"
 	"github.com/bwmarrin/discordgo"
 	"log"
@@ -35,7 +36,8 @@ func (h ResendCommand) Register(s *discordgo.Session) {
 }
 
 func (h ResendCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	codes, err := h.GiveawayRepo.GetLastCodesForUser(i.Member.User.ID, 10)
+	ctx := pkg.CreateContext()
+	codes, err := h.GiveawayRepo.GetLastCodesForUser(ctx, i.Member.User.ID, 10)
 	if err != nil {
 		log.Println("ResendCommand#GetLastCodesForUser", err)
 		return

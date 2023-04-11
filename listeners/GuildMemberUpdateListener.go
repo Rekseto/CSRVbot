@@ -2,6 +2,7 @@ package listeners
 
 import (
 	"csrvbot/internal/repos"
+	"csrvbot/pkg"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -16,9 +17,10 @@ func NewGuildMemberUpdateListener(userRepo *repos.UserRepo) GuildMemberUpdateLis
 }
 
 func (h GuildMemberUpdateListener) Handle(s *discordgo.Session, m *discordgo.GuildMemberUpdate) {
+	ctx := pkg.CreateContext()
 	if m.GuildID == "" { //can it be even empty?
 		return
 	}
 
-	h.UserRepo.UpdateMemberSavedRoles(m.Roles, m.User.ID, m.GuildID)
+	h.UserRepo.UpdateMemberSavedRoles(ctx, m.Roles, m.User.ID, m.GuildID)
 }

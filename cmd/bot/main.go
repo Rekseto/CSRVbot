@@ -5,6 +5,7 @@ import (
 	"csrvbot/internal/repos"
 	"csrvbot/internal/services"
 	"csrvbot/listeners"
+	"csrvbot/pkg"
 	"csrvbot/pkg/database"
 	"csrvbot/pkg/discord"
 	"encoding/json"
@@ -37,6 +38,7 @@ func init() {
 }
 
 func main() {
+	ctx := pkg.CreateContext()
 	db := database.NewProvider()
 
 	err := db.InitMySQLDatabases(BotConfig.MysqlConfig)
@@ -101,7 +103,7 @@ func main() {
 
 	c := cron.New()
 	_ = c.AddFunc(BotConfig.GiveawayCron, func() {
-		discord.FinishGiveaways(session, *giveawayRepo, *serverRepo, *csrvClient)
+		discord.FinishGiveaways(ctx, session, *giveawayRepo, *serverRepo, *csrvClient)
 	})
 	c.Start()
 

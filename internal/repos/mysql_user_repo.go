@@ -1,6 +1,7 @@
 package repos
 
 import (
+	"context"
 	"database/sql"
 	"github.com/go-gorp/gorp"
 	"log"
@@ -39,9 +40,9 @@ type HelperBlacklist struct {
 	BlacklisterId string `db:"blacklister_id,size:255"`
 }
 
-func (repo *UserRepo) GetRolesForMember(guildId, memberId string) ([]MemberRole, error) {
+func (repo *UserRepo) GetRolesForMember(ctx context.Context, guildId, memberId string) ([]MemberRole, error) {
 	var memberRoles []MemberRole
-	_, err := repo.mysql.Select(&memberRoles, "SELECT * FROM member_roles WHERE guild_id = ? AND member_id = ?", guildId, memberId)
+	_, err := repo.mysql.WithContext(ctx).Select(&memberRoles, "SELECT * FROM member_roles WHERE guild_id = ? AND member_id = ?", guildId, memberId)
 	if err != nil {
 		return nil, err
 	}
@@ -49,26 +50,26 @@ func (repo *UserRepo) GetRolesForMember(guildId, memberId string) ([]MemberRole,
 	return memberRoles, nil
 }
 
-func (repo *UserRepo) AddRoleForMember(guildId, memberId, roleId string) error {
+func (repo *UserRepo) AddRoleForMember(ctx context.Context, guildId, memberId, roleId string) error {
 	role := MemberRole{GuildId: guildId, RoleId: roleId, MemberId: memberId}
-	err := repo.mysql.Insert(&role)
+	err := repo.mysql.WithContext(ctx).Insert(&role)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repo *UserRepo) RemoveRoleForMember(guildId, memberId, roleId string) error {
-	_, err := repo.mysql.Exec("DELETE FROM member_roles WHERE guild_id = ? AND member_id = ? AND role_id = ?", guildId, memberId, roleId)
+func (repo *UserRepo) RemoveRoleForMember(ctx context.Context, guildId, memberId, roleId string) error {
+	_, err := repo.mysql.WithContext(ctx).Exec("DELETE FROM member_roles WHERE guild_id = ? AND member_id = ? AND role_id = ?", guildId, memberId, roleId)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repo *UserRepo) IsUserHelperBlacklisted(userId string, guildId string) (bool, error) {
+func (repo *UserRepo) IsUserHelperBlacklisted(ctx context.Context, userId string, guildId string) (bool, error) {
 	var helperBlacklist HelperBlacklist // todo: use another query to check if user is blacklisted
-	err := repo.mysql.SelectOne(&helperBlacklist, "SELECT * FROM helper_blacklists WHERE user_id = ? AND guild_id = ?", userId, guildId)
+	err := repo.mysql.WithContext(ctx).SelectOne(&helperBlacklist, "SELECT * FROM helper_blacklists WHERE user_id = ? AND guild_id = ?", userId, guildId)
 
 	if err == sql.ErrNoRows {
 		return false, nil
@@ -80,8 +81,8 @@ func (repo *UserRepo) IsUserHelperBlacklisted(userId string, guildId string) (bo
 	return true, nil
 }
 
-func (repo *UserRepo) UpdateMemberSavedRoles(memberRoles []string, memberId, guildId string) { //todo: how to properly return errors from this?
-	savedRoles, err := repo.GetRolesForMember(guildId, memberId)
+func (repo *UserRepo) UpdateMemberSavedRoles(ctx context.Context, memberRoles []string, memberId, guildId string) { //todo: how to properly return errors from this?
+	savedRoles, err := repo.GetRolesForMember(ctx, guildId, memberId)
 	if err != nil {
 		log.Println("("+guildId+") "+"updateMemberSavedRoles Error while getting saved roles", err)
 		return
@@ -101,7 +102,7 @@ func (repo *UserRepo) UpdateMemberSavedRoles(memberRoles []string, memberId, gui
 			}
 		}
 		if !found {
-			err = repo.AddRoleForMember(guildId, memberId, memberRole)
+			err = repo.AddRoleForMember(ctx, guildId, memberId, memberRole)
 			if err != nil {
 				log.Println("("+guildId+") Error while saving new role info", err)
 				continue
@@ -111,7 +112,7 @@ func (repo *UserRepo) UpdateMemberSavedRoles(memberRoles []string, memberId, gui
 
 	for _, savedRole := range savedRolesIds {
 		if savedRole != "" {
-			err = repo.RemoveRoleForMember(guildId, memberId, savedRole)
+			err = repo.RemoveRoleForMember(ctx, guildId, memberId, savedRole)
 			if err != nil {
 				log.Println("("+guildId+") "+"Error while deleting info about member role", err)
 				continue
@@ -120,42 +121,42 @@ func (repo *UserRepo) UpdateMemberSavedRoles(memberRoles []string, memberId, gui
 	}
 }
 
-func (repo *UserRepo) IsUserBlacklisted(userId string, guildId string) (bool, error) {
-	ret, err := repo.mysql.SelectInt("SELECT count(*) FROM blacklists WHERE guild_id = ? AND user_id = ?", guildId, userId)
+func (repo *UserRepo) IsUserBlacklisted(ctx context.Context, userId string, guildId string) (bool, error) {
+	ret, err := repo.mysql.WithContext(ctx).SelectInt("SELECT count(*) FROM blacklists WHERE guild_id = ? AND user_id = ?", guildId, userId)
 	if err != nil {
 		return false, err
 	}
 	return ret > 0, nil
 }
 
-func (repo *UserRepo) AddBlacklistForUser(userId, guildId, blacklisterId string) error {
+func (repo *UserRepo) AddBlacklistForUser(ctx context.Context, userId, guildId, blacklisterId string) error {
 	blacklist := Blacklist{UserId: userId, GuildId: guildId, BlacklisterId: blacklisterId}
-	err := repo.mysql.Insert(&blacklist)
+	err := repo.mysql.WithContext(ctx).Insert(&blacklist)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repo *UserRepo) RemoveBlacklistForUser(userId, guildId string) error {
-	_, err := repo.mysql.Exec("DELETE FROM blacklists WHERE guild_id = ? AND user_id = ?", guildId, userId)
+func (repo *UserRepo) RemoveBlacklistForUser(ctx context.Context, userId, guildId string) error {
+	_, err := repo.mysql.WithContext(ctx).Exec("DELETE FROM blacklists WHERE guild_id = ? AND user_id = ?", guildId, userId)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repo *UserRepo) AddHelperBlacklistForUser(userId, guildId, blacklisterId string) error {
+func (repo *UserRepo) AddHelperBlacklistForUser(ctx context.Context, userId, guildId, blacklisterId string) error {
 	blacklist := HelperBlacklist{UserId: userId, GuildId: guildId, BlacklisterId: blacklisterId}
-	err := repo.mysql.Insert(&blacklist)
+	err := repo.mysql.WithContext(ctx).Insert(&blacklist)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repo *UserRepo) RemoveHelperBlacklistForUser(userId, guildId string) error {
-	_, err := repo.mysql.Exec("DELETE FROM helper_blacklists WHERE guild_id = ? AND user_id = ?", guildId, userId)
+func (repo *UserRepo) RemoveHelperBlacklistForUser(ctx context.Context, userId, guildId string) error {
+	_, err := repo.mysql.WithContext(ctx).Exec("DELETE FROM helper_blacklists WHERE guild_id = ? AND user_id = ?", guildId, userId)
 	if err != nil {
 		return err
 	}
