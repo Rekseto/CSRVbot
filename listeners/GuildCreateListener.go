@@ -14,15 +14,13 @@ type GuildCreateListener struct {
 	GiveawayRepo repos.GiveawayRepo
 	ServerRepo   repos.ServerRepo
 	UserRepo     repos.UserRepo
-	Session      *discordgo.Session // TODO: remove this, replace with session from Handle method
 }
 
-func NewGuildCreateListener(session *discordgo.Session, giveawayRepo *repos.GiveawayRepo, serverRepo *repos.ServerRepo, userRepo *repos.UserRepo) GuildCreateListener {
+func NewGuildCreateListener(giveawayRepo *repos.GiveawayRepo, serverRepo *repos.ServerRepo, userRepo *repos.UserRepo) GuildCreateListener {
 	return GuildCreateListener{
 		GiveawayRepo: *giveawayRepo,
 		ServerRepo:   *serverRepo,
 		UserRepo:     *userRepo,
-		Session:      session,
 	}
 }
 
@@ -30,15 +28,15 @@ func (h GuildCreateListener) Handle(s *discordgo.Session, g *discordgo.GuildCrea
 	ctx := pkg.CreateContext()
 	log.Println("Registered guild (" + g.Name + "#" + g.ID + ")")
 
-	h.createConfigurationIfNotExists(ctx, g.Guild.ID)
+	h.createConfigurationIfNotExists(ctx, s, g.Guild.ID)
 	discord.CreateMissingGiveaways(ctx, s, h.ServerRepo, h.GiveawayRepo, g.Guild)
-	h.updateAllMembersSavedRoles(ctx, g.Guild.ID)
+	h.updateAllMembersSavedRoles(ctx, s, g.Guild.ID)
 	discord.CheckHelpers(ctx, s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, g.Guild.ID)
 }
 
-func (h GuildCreateListener) createConfigurationIfNotExists(ctx context.Context, guildID string) {
+func (h GuildCreateListener) createConfigurationIfNotExists(ctx context.Context, session *discordgo.Session, guildID string) {
 	var giveawayChannel string
-	channels, _ := h.Session.GuildChannels(guildID)
+	channels, _ := session.GuildChannels(guildID)
 	for _, channel := range channels {
 		if channel.Name == "giveaway" {
 			giveawayChannel = channel.ID
@@ -58,8 +56,8 @@ func (h GuildCreateListener) createConfigurationIfNotExists(ctx context.Context,
 	}
 }
 
-func (h GuildCreateListener) updateAllMembersSavedRoles(ctx context.Context, guildId string) {
-	guildMembers := discord.GetAllMembers(h.Session, guildId)
+func (h GuildCreateListener) updateAllMembersSavedRoles(ctx context.Context, session *discordgo.Session, guildId string) {
+	guildMembers := discord.GetAllMembers(session, guildId)
 	for _, member := range guildMembers {
 		h.UserRepo.UpdateMemberSavedRoles(ctx, member.Roles, member.User.ID, guildId)
 	}

@@ -77,7 +77,7 @@ func main() {
 	var docCommand = commands.NewDocCommand(githubClient)
 	var resendCommand = commands.NewResendCommand(giveawayRepo)
 	var interactionCreateListener = listeners.NewInteractionCreateListener(giveawayCommand, thxCommand, thxmeCommand, csrvbotCommand, docCommand, resendCommand, giveawayRepo)
-	var guildCreateListener = listeners.NewGuildCreateListener(session, giveawayRepo, serverRepo, userRepo)
+	var guildCreateListener = listeners.NewGuildCreateListener(giveawayRepo, serverRepo, userRepo)
 	var guildMemberAddListener = listeners.NewGuildMemberAddListener(userRepo)
 	var guildMemberUpdateListener = listeners.NewGuildMemberUpdateListener(userRepo)
 	var messageReactionAddListener = listeners.NewMessageReactionAddListener(BotConfig.GiveawayTimeString, userRepo, giveawayRepo, serverRepo)
