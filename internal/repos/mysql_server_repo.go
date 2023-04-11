@@ -27,7 +27,7 @@ type ServerConfig struct {
 
 func (repo *ServerRepo) GetServerConfigForGuild(ctx context.Context, guildId string) (*ServerConfig, error) {
 	var serverConfig ServerConfig
-	err := repo.mysql.WithContext(ctx).SelectOne(&serverConfig, "SELECT * FROM server_configs WHERE guild_id = ?", guildId)
+	err := repo.mysql.WithContext(ctx).SelectOne(&serverConfig, "SELECT id, guild_id, admin_role, main_channel, thx_info_channel, helper_role_name, helper_role_thxes_needed FROM server_configs WHERE guild_id = ?", guildId)
 	if err != nil {
 		return nil, err
 	}

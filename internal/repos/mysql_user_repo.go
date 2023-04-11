@@ -2,7 +2,6 @@ package repos
 
 import (
 	"context"
-	"database/sql"
 	"github.com/go-gorp/gorp"
 	"log"
 )
@@ -42,7 +41,7 @@ type HelperBlacklist struct {
 
 func (repo *UserRepo) GetRolesForMember(ctx context.Context, guildId, memberId string) ([]MemberRole, error) {
 	var memberRoles []MemberRole
-	_, err := repo.mysql.WithContext(ctx).Select(&memberRoles, "SELECT * FROM member_roles WHERE guild_id = ? AND member_id = ?", guildId, memberId)
+	_, err := repo.mysql.WithContext(ctx).Select(&memberRoles, "SELECT id, guild_id, member_id, role_id FROM member_roles WHERE guild_id = ? AND member_id = ?", guildId, memberId)
 	if err != nil {
 		return nil, err
 	}
@@ -68,17 +67,11 @@ func (repo *UserRepo) RemoveRoleForMember(ctx context.Context, guildId, memberId
 }
 
 func (repo *UserRepo) IsUserHelperBlacklisted(ctx context.Context, userId string, guildId string) (bool, error) {
-	var helperBlacklist HelperBlacklist // todo: use another query to check if user is blacklisted
-	err := repo.mysql.WithContext(ctx).SelectOne(&helperBlacklist, "SELECT * FROM helper_blacklists WHERE user_id = ? AND guild_id = ?", userId, guildId)
-
-	if err == sql.ErrNoRows {
-		return false, nil
-	}
-
+	ret, err := repo.mysql.WithContext(ctx).SelectInt("SELECT count(*) FROM helper_blacklists WHERE guild_id = ? AND user_id = ?", guildId, userId)
 	if err != nil {
-		log.Panicln("("+userId+") checkUserBlacklist#DbMap.SelectOne", err)
+		return false, err
 	}
-	return true, nil
+	return ret > 0, nil
 }
 
 func (repo *UserRepo) UpdateMemberSavedRoles(ctx context.Context, memberRoles []string, memberId, guildId string) { //todo: how to properly return errors from this?

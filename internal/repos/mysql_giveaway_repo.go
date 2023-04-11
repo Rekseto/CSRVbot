@@ -75,7 +75,7 @@ type ParticipantWithThxAmount struct {
 
 func (repo *GiveawayRepo) GetGiveawayForGuild(ctx context.Context, guildId string) (*Giveaway, error) {
 	var giveaway Giveaway
-	err := repo.mysql.WithContext(ctx).SelectOne(&giveaway, "SELECT * FROM giveaways WHERE guild_id = ? AND end_time IS NULL", guildId)
+	err := repo.mysql.WithContext(ctx).SelectOne(&giveaway, "SELECT id, start_time, end_time, guild_id, guild_name, winner_id, winner_name, info_message_id, code FROM giveaways WHERE guild_id = ? AND end_time IS NULL", guildId)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -152,7 +152,7 @@ func (repo *GiveawayRepo) InsertParticipantCandidate(ctx context.Context, guildI
 
 func (repo *GiveawayRepo) GetParticipantsWithThxAmount(ctx context.Context, guildId string, minThxAmount int) ([]ParticipantWithThxAmount, error) {
 	var helpers []ParticipantWithThxAmount
-	_, err := repo.mysql.WithContext(ctx).Select(&helpers, "SELECT * FROM (SELECT user_id, count(*) AS amount FROM participants WHERE guild_id=? AND is_accepted=1 GROUP BY user_id) AS a WHERE amount > ?", guildId, minThxAmount)
+	_, err := repo.mysql.WithContext(ctx).Select(&helpers, "SELECT user_id, amount FROM (SELECT user_id, count(*) AS amount FROM participants WHERE guild_id=? AND is_accepted=1 GROUP BY user_id) AS a WHERE amount > ?", guildId, minThxAmount)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +169,7 @@ func (repo *GiveawayRepo) HasThxAmount(ctx context.Context, guildId, memberId st
 
 func (repo *GiveawayRepo) GetParticipantsForGiveaway(ctx context.Context, giveawayId int) ([]Participant, error) {
 	var participants []Participant
-	_, err := repo.mysql.WithContext(ctx).Select(&participants, "SELECT * FROM participants WHERE giveaway_id = ? AND is_accepted = true", giveawayId)
+	_, err := repo.mysql.WithContext(ctx).Select(&participants, "SELECT id, user_name, user_id, giveaway_id, create_time, guild_name, guild_id, message_id, channel_id, is_accepted, accept_time, accept_user, accept_user_id FROM participants WHERE giveaway_id = ? AND is_accepted = true", giveawayId)
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func (repo *GiveawayRepo) GetParticipantsForGiveaway(ctx context.Context, giveaw
 
 func (repo *GiveawayRepo) GetThxNotification(ctx context.Context, messageId string) (*ThxNotification, error) {
 	var notification ThxNotification
-	err := repo.mysql.WithContext(ctx).SelectOne(&notification, "SELECT * FROM thx_notifications WHERE message_id = ?", messageId)
+	err := repo.mysql.WithContext(ctx).SelectOne(&notification, "SELECT id, message_id, thx_notification_message_id FROM thx_notifications WHERE message_id = ?", messageId)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +242,7 @@ func (repo *GiveawayRepo) UpdateParticipant(ctx context.Context, participant *Pa
 
 func (repo *GiveawayRepo) GetParticipantCandidate(ctx context.Context, messageId string) (*ParticipantCandidate, error) {
 	var participantCandidate ParticipantCandidate
-	err := repo.mysql.WithContext(ctx).SelectOne(&participantCandidate, "SELECT * FROM participant_candidates WHERE message_id = ?", messageId)
+	err := repo.mysql.WithContext(ctx).SelectOne(&participantCandidate, "SELECT id, candidate_id, candidate_name, candidate_approver_id, candidate_approver_name, guild_id, guild_name, message_id, channel_id, is_accepted, accept_time FROM participant_candidates WHERE message_id = ?", messageId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -279,7 +279,7 @@ func (repo *GiveawayRepo) UpdateGiveaway(ctx context.Context, giveaway *Giveaway
 
 func (repo *GiveawayRepo) GetUnfinishedGiveaways(ctx context.Context) ([]Giveaway, error) {
 	var giveaways []Giveaway
-	_, err := repo.mysql.WithContext(ctx).Select(&giveaways, "SELECT * FROM giveaways WHERE end_time IS NULL")
+	_, err := repo.mysql.WithContext(ctx).Select(&giveaways, "SELECT id, start_time, end_time, guild_id, guild_name, winner_id, winner_name, info_message_id, code FROM giveaways WHERE end_time IS NULL")
 	if err != nil {
 		return nil, err
 	}

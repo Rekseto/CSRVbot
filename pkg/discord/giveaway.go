@@ -16,7 +16,7 @@ func FinishGiveaway(ctx context.Context, s *discordgo.Session, serverRepo repos.
 		log.Println("("+guildId+") Could not get giveaway", err)
 		return
 	}
-	_, err = s.Guild(giveaway.GuildId)
+	_, err = s.Guild(guildId)
 	if err != nil {
 		log.Println("("+guildId+") finishGiveaway#session.Guild", err)
 		return
