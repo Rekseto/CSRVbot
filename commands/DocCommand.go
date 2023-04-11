@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"csrvbot/pkg"
+	"csrvbot/internal/services"
 	"csrvbot/pkg/discord"
 	"github.com/bwmarrin/discordgo"
 	"log"
@@ -11,13 +11,15 @@ type DocCommand struct {
 	Name         string
 	Description  string
 	DMPermission bool
+	GithubClient services.GithubClient
 }
 
-func NewDocCommand() DocCommand {
+func NewDocCommand(githubClient *services.GithubClient) DocCommand {
 	return DocCommand{
 		Name:         "doc",
 		Description:  "Wysyła link do danego poradnika",
 		DMPermission: false,
+		GithubClient: *githubClient,
 	}
 }
 
@@ -50,7 +52,7 @@ func (h DocCommand) Register(s *discordgo.Session) {
 func (h DocCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	docName := i.ApplicationCommandData().Options[0].StringValue()
 
-	docExists, err := pkg.GetDocExists(docName)
+	docExists, err := h.GithubClient.GetDocExists(docName)
 	if err != nil {
 		log.Println("Could not get doc", err)
 		discord.RespondWithMessage(s, i, "Wystąpił błąd podczas wyszukiwania poradnika")
@@ -73,7 +75,7 @@ func (h DocCommand) HandleAutocomplete(s *discordgo.Session, i *discordgo.Intera
 	data := i.ApplicationCommandData()
 	var choices []*discordgo.ApplicationCommandOptionChoice
 
-	docs, err := pkg.GetDocs(data.Options[0].StringValue())
+	docs, err := h.GithubClient.GetDocs(data.Options[0].StringValue())
 	if err != nil {
 		log.Println("Could not get docs", err)
 		return

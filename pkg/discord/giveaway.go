@@ -2,14 +2,14 @@ package discord
 
 import (
 	"csrvbot/internal/repos"
-	"csrvbot/pkg"
+	"csrvbot/internal/services"
 	"github.com/bwmarrin/discordgo"
 	"log"
 	"math/rand"
 	"time"
 )
 
-func FinishGiveaway(s *discordgo.Session, serverRepo repos.ServerRepo, giveawayRepo repos.GiveawayRepo, guildId string) {
+func FinishGiveaway(s *discordgo.Session, serverRepo repos.ServerRepo, giveawayRepo repos.GiveawayRepo, csrvClient services.CsrvClient, guildId string) {
 	giveaway, err := giveawayRepo.GetGiveawayForGuild(guildId)
 	if giveaway == nil || err != nil {
 		log.Println("("+guildId+") Could not get giveaway", err)
@@ -45,7 +45,7 @@ func FinishGiveaway(s *discordgo.Session, serverRepo repos.ServerRepo, giveawayR
 		return
 	}
 
-	code, err := pkg.GetCSRVCode()
+	code, err := csrvClient.GetCSRVCode()
 	if err != nil {
 		log.Println("("+guildId+") finishGiveaway#getCSRVCode", err)
 		_, err = s.ChannelMessageSend(giveawayChannelId, "Błąd API Craftserve, nie udało się pobrać kodu!")
@@ -100,14 +100,14 @@ func FinishGiveaway(s *discordgo.Session, serverRepo repos.ServerRepo, giveawayR
 
 }
 
-func FinishGiveaways(s *discordgo.Session, giveawayRepo repos.GiveawayRepo, serverRepo repos.ServerRepo) {
+func FinishGiveaways(s *discordgo.Session, giveawayRepo repos.GiveawayRepo, serverRepo repos.ServerRepo, csrvClient services.CsrvClient) {
 	giveaways, err := giveawayRepo.GetUnfinishedGiveaways()
 	if err != nil {
 		log.Println("finishGiveaways#giveawayRepo.GetUnfinishedGiveaways", err)
 		return
 	}
 	for _, giveaway := range giveaways {
-		FinishGiveaway(s, serverRepo, giveawayRepo, giveaway.GuildId)
+		FinishGiveaway(s, serverRepo, giveawayRepo, csrvClient, giveaway.GuildId)
 		guild, err := s.Guild(giveaway.GuildId)
 		if err == nil {
 			CreateMissingGiveaways(s, serverRepo, giveawayRepo, guild)

@@ -3,6 +3,7 @@ package main
 import (
 	"csrvbot/commands"
 	"csrvbot/internal/repos"
+	"csrvbot/internal/services"
 	"csrvbot/listeners"
 	"csrvbot/pkg/database"
 	"csrvbot/pkg/discord"
@@ -57,6 +58,9 @@ func main() {
 		panic(err)
 	}
 
+	var csrvClient = services.NewCsrvClient(BotConfig.CsrvSecret)
+	var githubClient = services.NewGithubClient()
+
 	session, err := discordgo.New("Bot " + BotConfig.SystemToken)
 	if err != nil {
 		panic(err)
@@ -67,8 +71,8 @@ func main() {
 	var giveawayCommand = commands.NewGiveawayCommand(giveawayRepo, BotConfig.GiveawayTimeString)
 	var thxCommand = commands.NewThxCommand(giveawayRepo, userRepo, serverRepo, BotConfig.GiveawayTimeString)
 	var thxmeCommand = commands.NewThxmeCommand(giveawayRepo, userRepo, serverRepo, BotConfig.GiveawayTimeString)
-	var csrvbotCommand = commands.NewCsrvbotCommand(serverRepo, giveawayRepo, userRepo)
-	var docCommand = commands.NewDocCommand()
+	var csrvbotCommand = commands.NewCsrvbotCommand(serverRepo, giveawayRepo, userRepo, csrvClient)
+	var docCommand = commands.NewDocCommand(githubClient)
 	var resendCommand = commands.NewResendCommand(giveawayRepo)
 	var interactionCreateListener = listeners.NewInteractionCreateListener(giveawayCommand, thxCommand, thxmeCommand, csrvbotCommand, docCommand, resendCommand, giveawayRepo)
 	var guildCreateListener = listeners.NewGuildCreateListener(session, giveawayRepo, serverRepo, userRepo)
@@ -97,7 +101,7 @@ func main() {
 
 	c := cron.New()
 	_ = c.AddFunc(BotConfig.GiveawayCron, func() {
-		discord.FinishGiveaways(session, *giveawayRepo, *serverRepo)
+		discord.FinishGiveaways(session, *giveawayRepo, *serverRepo, *csrvClient)
 	})
 	c.Start()
 

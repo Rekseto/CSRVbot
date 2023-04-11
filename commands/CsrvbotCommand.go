@@ -2,6 +2,7 @@ package commands
 
 import (
 	"csrvbot/internal/repos"
+	"csrvbot/internal/services"
 	"csrvbot/pkg/discord"
 	"github.com/bwmarrin/discordgo"
 	"log"
@@ -17,9 +18,10 @@ type CsrvbotCommand struct {
 	ServerRepo    repos.ServerRepo
 	GiveawayRepo  repos.GiveawayRepo
 	UserRepo      repos.UserRepo
+	CsrvClient    services.CsrvClient
 }
 
-func NewCsrvbotCommand(serverRepo *repos.ServerRepo, giveawayRepo *repos.GiveawayRepo, userRepo *repos.UserRepo) CsrvbotCommand {
+func NewCsrvbotCommand(serverRepo *repos.ServerRepo, giveawayRepo *repos.GiveawayRepo, userRepo *repos.UserRepo, csrvClient *services.CsrvClient) CsrvbotCommand {
 	return CsrvbotCommand{
 		Name:         "csrvbot",
 		Description:  "Komendy konfiguracyjne i administracyjne",
@@ -28,6 +30,7 @@ func NewCsrvbotCommand(serverRepo *repos.ServerRepo, giveawayRepo *repos.Giveawa
 		ServerRepo:   *serverRepo,
 		GiveawayRepo: *giveawayRepo,
 		UserRepo:     *userRepo,
+		CsrvClient:   *csrvClient,
 	}
 }
 
@@ -247,7 +250,7 @@ func (h CsrvbotCommand) handleStart(s *discordgo.Session, i *discordgo.Interacti
 		}
 	}
 
-	discord.FinishGiveaway(s, h.ServerRepo, h.GiveawayRepo, guild.ID)
+	discord.FinishGiveaway(s, h.ServerRepo, h.GiveawayRepo, h.CsrvClient, guild.ID)
 	discord.RespondWithMessage(s, i, "Podjęto próbę rozstrzygnięcia giveawayu")
 
 	discord.CreateMissingGiveaways(s, h.ServerRepo, h.GiveawayRepo, guild)

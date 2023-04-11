@@ -1,38 +1,27 @@
-package pkg
+package services
 
 import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 )
 
-func GetCSRVCode() (string, error) {
-	req, err := http.NewRequest("POST", "https://craftserve.pl/api/generate_voucher", nil)
-	if err != nil {
-		return "", err
-	}
-	req.SetBasicAuth("csrvbot", os.Getenv("CSRV_SECRET"))
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Println("getCSRVCode http.DefaultClient.Do(req) " + err.Error())
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	var data struct {
-		Code string `json:"code"`
-	}
-	err = json.NewDecoder(resp.Body).Decode(&data)
-	if err != nil {
-		return "", err
-	}
-	return data.Code, nil
+type GithubClient struct {
+	HiddenDocs []string
 }
 
-func GetDocs(prefix string) ([]string, error) {
+func NewGithubClient() *GithubClient {
+	return &GithubClient{
+		HiddenDocs: []string{"README.md", "todo.md"},
+	}
+}
+
+type ContentsResponse []struct {
+	Name string `json:"name"`
+}
+
+func (g *GithubClient) GetDocs(prefix string) ([]string, error) {
 	req, err := http.NewRequest("GET", "https://api.github.com/repos/craftserve/docs/contents", nil)
 	if err != nil {
 		return nil, err
@@ -44,10 +33,8 @@ func GetDocs(prefix string) ([]string, error) {
 		return nil, err
 	}
 
-	var data []struct {
-		Name string `json:"name"`
-	}
-	err = json.NewDecoder(resp.Body).Decode(&data)
+	var contents ContentsResponse
+	err = json.NewDecoder(resp.Body).Decode(&contents)
 	if err != nil {
 		return nil, err
 	}
@@ -57,17 +44,16 @@ func GetDocs(prefix string) ([]string, error) {
 	}
 
 	var docs []string
-	hiddenDocs := []string{"README.md", "todo.md"}
 
 DOCS:
-	for _, doc := range data {
+	for _, doc := range contents {
 		if !strings.HasSuffix(doc.Name, ".md") {
 			continue
 		}
 		if !strings.HasPrefix(doc.Name, prefix) {
 			continue
 		}
-		for _, hiddenDoc := range hiddenDocs {
+		for _, hiddenDoc := range g.HiddenDocs {
 			if doc.Name == hiddenDoc {
 				continue DOCS
 			}
@@ -79,7 +65,7 @@ DOCS:
 	return docs, nil
 }
 
-func GetDocExists(name string) (bool, error) {
+func (g *GithubClient) GetDocExists(name string) (bool, error) {
 	req, err := http.NewRequest("GET", "https://api.github.com/repos/craftserve/docs/contents/"+name+".md", nil)
 	if err != nil {
 		return false, err
