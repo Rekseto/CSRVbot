@@ -47,6 +47,24 @@ func (h ThxCommand) Register(s *discordgo.Session) {
 	if err != nil {
 		log.Println("Could not register command", err)
 	}
+
+	_, err = s.ApplicationCommandCreate(s.State.User.ID, "", &discordgo.ApplicationCommand{
+		Name:         h.Name,
+		DMPermission: &h.DMPermission,
+		Type:         discordgo.MessageApplicationCommand,
+	})
+	if err != nil {
+		log.Println("Could not register context command", err)
+	}
+
+	_, err = s.ApplicationCommandCreate(s.State.User.ID, "", &discordgo.ApplicationCommand{
+		Name:         h.Name,
+		DMPermission: &h.DMPermission,
+		Type:         discordgo.UserApplicationCommand,
+	})
+	if err != nil {
+		log.Println("Could not register context command", err)
+	}
 }
 
 func (h ThxCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -56,7 +74,13 @@ func (h ThxCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate)
 		log.Println("("+i.GuildID+") handleThxCommand#session.Guild", err)
 		return
 	}
-	selectedUser := i.ApplicationCommandData().Options[0].UserValue(s)
+	var selectedUser *discordgo.User
+	data := i.ApplicationCommandData()
+	if len(data.Options) == 0 {
+		selectedUser = data.Resolved.Messages[data.TargetID].Author
+	} else {
+		selectedUser = data.Options[0].UserValue(s)
+	}
 	author := i.Member.User
 	if author.ID == selectedUser.ID {
 		discord.RespondWithMessage(s, i, "Nie można dziękować sobie!")
@@ -121,4 +145,8 @@ func (h ThxCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate)
 	}
 	for err = s.MessageReactionAdd(i.ChannelID, response.ID, "⛔"); err != nil; err = s.MessageReactionAdd(i.ChannelID, response.ID, "⛔") {
 	}
+}
+
+func (h ThxCommand) HandleContext(s *discordgo.Session, i *discordgo.InteractionCreate) {
+
 }
