@@ -4,8 +4,11 @@ import (
 	"csrvbot/internal/repos"
 	"csrvbot/pkg"
 	"csrvbot/pkg/discord"
-	"github.com/bwmarrin/discordgo"
+	"database/sql"
+	"errors"
 	"log"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 type ThxCommand struct {
@@ -67,6 +70,7 @@ func (h ThxCommand) Register(s *discordgo.Session) {
 	}
 }
 
+// @FIXME: better logging
 func (h ThxCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	ctx := pkg.CreateContext()
 	guild, err := s.Guild(i.GuildID)
@@ -139,8 +143,44 @@ func (h ThxCommand) Handle(s *discordgo.Session, i *discordgo.InteractionCreate)
 		return
 	}
 	log.Println("(" + i.GuildID + ") " + author.Username + " has thanked " + selectedUser.Username)
-	discord.NotifyThxOnThxInfoChannel(ctx, s, h.ServerRepo, h.GiveawayRepo, i.GuildID, i.ChannelID, response.ID, selectedUser.ID, "", "wait")
 
+	serverConfig, err := h.ServerRepo.GetServerConfigForGuild(ctx, i.GuildID)
+	if err != nil {
+		log.Println("("+i.GuildID+") Could not get server config", err)
+		return
+
+	}
+
+	thxNotification, err := h.GiveawayRepo.GetThxNotification(ctx, response.ID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		log.Println("("+i.GuildID+") Could not get server config", err)
+		return
+	}
+
+	// If thxNofification not founded, send thx message and insert
+	if errors.Is(err, sql.ErrNoRows) {
+		notificationMessageId, err := discord.NotifyThxOnThxInfoChannel(ctx, s, *serverConfig, nil, i.GuildID, i.ChannelID, response.ID, selectedUser.ID, "", "wait")
+		if err != nil {
+			log.Println("("+i.GuildID+") Could not get server config", err)
+			return
+		}
+
+		err = h.GiveawayRepo.InsertThxNotification(ctx, response.ID, notificationMessageId)
+		if err != nil {
+			log.Println("("+i.GuildID+") Could not get server config", err)
+			return
+		}
+	} else {
+		_, err := discord.NotifyThxOnThxInfoChannel(ctx, s, *serverConfig, &thxNotification.ThxNotificationMessageId, i.GuildID, i.ChannelID, response.ID, selectedUser.ID, "", "wait")
+		if err != nil {
+			log.Println("("+i.GuildID+") Could not get server config", err)
+			return
+		}
+
+		// Not need to update
+	}
+
+	// xd
 	for err = s.MessageReactionAdd(i.ChannelID, response.ID, "✅"); err != nil; err = s.MessageReactionAdd(i.ChannelID, response.ID, "✅") {
 	}
 	for err = s.MessageReactionAdd(i.ChannelID, response.ID, "⛔"); err != nil; err = s.MessageReactionAdd(i.ChannelID, response.ID, "⛔") {

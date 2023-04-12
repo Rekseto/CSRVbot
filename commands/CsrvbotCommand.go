@@ -6,9 +6,10 @@ import (
 	"csrvbot/internal/services"
 	"csrvbot/pkg"
 	"csrvbot/pkg/discord"
-	"github.com/bwmarrin/discordgo"
 	"log"
 	"strconv"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 type CsrvbotCommand struct {
@@ -271,6 +272,7 @@ func (h CsrvbotCommand) handleStart(ctx context.Context, s *discordgo.Session, i
 		}
 	}
 
+	// below it should be copy
 	discord.FinishGiveaway(ctx, s, h.ServerRepo, h.GiveawayRepo, h.CsrvClient, guild.ID)
 	discord.RespondWithMessage(s, i, "Podjęto próbę rozstrzygnięcia giveawayu")
 

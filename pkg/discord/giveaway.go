@@ -4,30 +4,36 @@ import (
 	"context"
 	"csrvbot/internal/repos"
 	"csrvbot/internal/services"
-	"github.com/bwmarrin/discordgo"
 	"log"
 	"math/rand"
 	"time"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 func FinishGiveaway(ctx context.Context, s *discordgo.Session, serverRepo repos.ServerRepo, giveawayRepo repos.GiveawayRepo, csrvClient services.CsrvClient, guildId string) {
+	// should be an input
 	giveaway, err := giveawayRepo.GetGiveawayForGuild(ctx, guildId)
 	if giveaway == nil || err != nil {
 		log.Println("("+guildId+") Could not get giveaway", err)
 		return
 	}
+
+	// logic
 	_, err = s.Guild(guildId)
 	if err != nil {
 		log.Println("("+guildId+") finishGiveaway#session.Guild", err)
 		return
 	}
 
+	// input
 	giveawayChannelId, err := serverRepo.GetMainChannelForGuild(ctx, guildId)
 	if err != nil {
 		log.Println("("+guildId+") finishGiveaway#serverRepo.GetMainChannelForGuild", err)
 		return
 	}
 
+	// input
 	participants, err := giveawayRepo.GetParticipantsForGiveaway(ctx, giveaway.Id)
 	if err != nil {
 		log.Println("("+guildId+") finishGiveaway#DbMap.Select", err)
@@ -46,6 +52,7 @@ func FinishGiveaway(ctx context.Context, s *discordgo.Session, serverRepo repos.
 		return
 	}
 
+	// Logic
 	code, err := csrvClient.GetCSRVCode()
 	if err != nil {
 		log.Println("("+guildId+") finishGiveaway#getCSRVCode", err)
@@ -55,6 +62,8 @@ func FinishGiveaway(ctx context.Context, s *discordgo.Session, serverRepo repos.
 		}
 		return
 	}
+
+	// make it function sendWinnerMessage or sth like that.
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	winner := participants[rand.Intn(len(participants))]
 
@@ -88,6 +97,7 @@ func FinishGiveaway(ctx context.Context, s *discordgo.Session, serverRepo repos.
 			},
 		},
 	})
+	//
 
 	if err != nil {
 		log.Println("("+guildId+") finishGiveaway#session.ChannelMessageSendEmbed", err)
@@ -101,6 +111,7 @@ func FinishGiveaway(ctx context.Context, s *discordgo.Session, serverRepo repos.
 
 }
 
+// FIXME: Make it a command (because its cronjob)
 func FinishGiveaways(ctx context.Context, s *discordgo.Session, giveawayRepo repos.GiveawayRepo, serverRepo repos.ServerRepo, csrvClient services.CsrvClient) {
 	giveaways, err := giveawayRepo.GetUnfinishedGiveaways(ctx)
 	if err != nil {
@@ -117,6 +128,7 @@ func FinishGiveaways(ctx context.Context, s *discordgo.Session, giveawayRepo rep
 
 }
 
+// @FIXME: Copy this code wherever it's needed
 func CreateMissingGiveaways(ctx context.Context, s *discordgo.Session, serverRepo repos.ServerRepo, giveawayRepo repos.GiveawayRepo, guild *discordgo.Guild) {
 	serverConfig, err := serverRepo.GetServerConfigForGuild(ctx, guild.ID)
 	if err != nil {

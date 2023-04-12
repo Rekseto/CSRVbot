@@ -6,8 +6,9 @@ import (
 	"csrvbot/pkg"
 	"csrvbot/pkg/discord"
 	"database/sql"
-	"github.com/bwmarrin/discordgo"
 	"log"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 type GuildCreateListener struct {
@@ -63,6 +64,7 @@ func (h GuildCreateListener) createConfigurationIfNotExists(ctx context.Context,
 			log.Println("("+guildID+") Could not get server config", err)
 		}
 	}
+
 }
 
 func (h GuildCreateListener) updateAllMembersSavedRoles(ctx context.Context, session *discordgo.Session, guildId string) {

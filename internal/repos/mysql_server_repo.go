@@ -2,6 +2,7 @@ package repos
 
 import (
 	"context"
+
 	"github.com/go-gorp/gorp"
 )
 
@@ -25,6 +26,7 @@ type ServerConfig struct {
 	HelperRoleThxesNeeded int    `db:"helper_role_thxes_needed"`
 }
 
+// @FIXME: should not return pointer
 func (repo *ServerRepo) GetServerConfigForGuild(ctx context.Context, guildId string) (*ServerConfig, error) {
 	var serverConfig ServerConfig
 	err := repo.mysql.WithContext(ctx).SelectOne(&serverConfig, "SELECT id, guild_id, admin_role_id, main_channel, thx_info_channel, helper_role_id, helper_role_thxes_needed FROM server_configs WHERE guild_id = ?", guildId)
@@ -63,6 +65,19 @@ func (repo *ServerRepo) GetMainChannelForGuild(ctx context.Context, guildId stri
 	return str, nil
 }
 
+// Use this!!!
+func (repo *ServerRepo) Update(ctx context.Context, serverConfig *ServerConfig) error {
+	sqlExecutor := repo.mysql.WithContext(ctx)
+
+	_, err := sqlExecutor.Update(serverConfig)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// @FIXME: If its not super sensitive, we should input whole struct to update to func called UpdateServerConfig
 func (repo *ServerRepo) SetMainChannelForGuild(ctx context.Context, guildId, channelId string) error {
 	_, err := repo.mysql.WithContext(ctx).Exec("UPDATE server_configs SET main_channel = ? WHERE guild_id = ?", channelId, guildId)
 	if err != nil {
@@ -71,6 +86,7 @@ func (repo *ServerRepo) SetMainChannelForGuild(ctx context.Context, guildId, cha
 	return nil
 }
 
+// @FIXME: If its not super sensitive, we should input whole struct to update to func called UpdateServerConfig
 func (repo *ServerRepo) SetThxInfoChannelForGuild(ctx context.Context, guildId, channelId string) error {
 	_, err := repo.mysql.WithContext(ctx).Exec("UPDATE server_configs SET thx_info_channel = ? WHERE guild_id = ?", channelId, guildId)
 	if err != nil {

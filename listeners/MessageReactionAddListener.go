@@ -5,8 +5,9 @@ import (
 	"csrvbot/pkg"
 	"csrvbot/pkg/discord"
 	"fmt"
-	"github.com/bwmarrin/discordgo"
 	"log"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 type MessageReactionAddListener struct {
@@ -121,6 +122,8 @@ func (h MessageReactionAddListener) Handle(s *discordgo.Session, r *discordgo.Me
 				log.Println("("+r.GuildID+") Could not update message", err)
 				return
 			}
+
+			// FIXME: To not use repos
 			discord.NotifyThxOnThxInfoChannel(ctx, s, h.ServerRepo, h.GiveawayRepo, r.GuildID, r.ChannelID, r.MessageID, participant.UserId, r.UserID, "reject")
 			discord.CheckHelper(ctx, s, h.ServerRepo, h.GiveawayRepo, h.UserRepo, r.GuildID, participant.UserId)
 			break
